@@ -1,5 +1,7 @@
 # yaml-shellcheck
 
+[![Docker Repository on Quay](https://quay.io/repository/mschuette/yaml-shellcheck/status "Docker Repository on Quay")](https://quay.io/repository/mschuette/yaml-shellcheck)
+
 Wrapper script to run [shellcheck](https://github.com/koalaman/shellcheck) on YAML CI-config files.
 Currently supported formats are [Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/) and [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html).
 
@@ -38,4 +40,15 @@ optional arguments:
 $ docker build . -t yaml_shellcheck:latest
 # run image
 $ docker run -v `pwd`:/app yaml_shellcheck app/*.yaml
+```
+
+### GitLab CI
+
+```yaml
+lint_yaml_shellcheck:
+  image:
+    name: quay.io/mschuette/yaml-shellcheck:latest
+    entrypoint: [""]
+  script:
+    - find . -name \*.yaml -or -name \*.yml | xargs python3 yaml_shellcheck.py
 ```
