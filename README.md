@@ -1,7 +1,14 @@
 # yaml-shellcheck
 
 Wrapper script to run [shellcheck](https://github.com/koalaman/shellcheck) on YAML CI-config files.
-Currently supported formats are [Bitbucket Pipelines](https://bitbucket.org/product/features/pipelines) and [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html).
+Currently supported formats are [Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/) and [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html).
+
+## Usage
+
+### Shell
+
+Needs Python 3 with library [ruamel.yaml](https://pypi.org/project/ruamel.yaml/),
+and shellcheck.
 
 ```text
 $ ./yaml_shellcheck.py -h
@@ -22,4 +29,13 @@ optional arguments:
                         default shebang line to add to shell script snippets (default: '#!/bin/sh -e')
   -c COMMAND, --command COMMAND
                         shellcheck command to run (default: shellcheck)
+```
+
+### Docker
+
+```shell
+# build image
+$ docker build . -t yaml_shellcheck:latest
+# run image
+$ docker run -v `pwd`:/app yaml_shellcheck app/*.yaml
 ```
