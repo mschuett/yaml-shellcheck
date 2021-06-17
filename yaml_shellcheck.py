@@ -208,6 +208,10 @@ def write_tmp_files(args, data):
     outdir.mkdir(exist_ok=True, parents=True)
     for filename in data:
         subdir = outdir / filename
+        # remove all '..' elements from the tmp file paths
+        if ".." in subdir.parts:
+            parts = filter(lambda a: a != '..', list(subdir.parts))
+            subdir = Path(*parts)
         subdir.mkdir(exist_ok=True, parents=True)
         for jobkey in data[filename]:
             scriptfilename = subdir / jobkey
