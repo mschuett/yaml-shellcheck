@@ -154,17 +154,17 @@ def get_gitlab_scripts(data):
     return result
 
 
-def select_yaml_schema(data):
+def select_yaml_schema(data, filename):
     # try to determine CI system and file format,
     # returns the right get function
     if "pipelines" in data:
-        logging.info("read as Bitbucket Pipelines config...")
+        logging.info(f"read {filename} as Bitbucket Pipelines config...")
         return get_bitbucket_scripts
     elif "on" in data and "jobs" in data:
-        logging.info("read as GitHub Actions config...")
+        logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts
     else:
-        logging.info("read as GitLab CI config...")
+        logging.info(f"read {filename} as GitLab CI config...")
         return get_gitlab_scripts
 
 
@@ -198,7 +198,7 @@ def read_yaml_file(filename):
 
     with open(filename, "r") as f:
         data = yaml.load(f)
-    get_script_snippets = select_yaml_schema(data)
+    get_script_snippets = select_yaml_schema(data, filename)
     return get_script_snippets(data)
 
 
