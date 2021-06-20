@@ -70,7 +70,9 @@ def setup():
 
 def get_bitbucket_scripts(data):
     """Bitbucket pipeline files are deeply nested, and they do not
-    publish a schema"""
+    publish a schema, as a result we simply search all scripts elements,
+    something like `pipelines.**.script`
+    """
     logging.debug("get_bitbucket_scripts()")
 
     def get_scripts(data, path):
@@ -107,15 +109,45 @@ def get_bitbucket_scripts(data):
 
 
 def get_github_scripts(data):
-    """GitHub
-    we only look for `jobs.<job_id>.steps[*].run` sections
+    """GitHub: from the docs the search pattern should be `jobs.<job_id>.steps[*].run`
     https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+    as a simple first step we match on `jobs.**.run`
     """
-    raise NotImplementedError("GitHub Actions are not supported yet")
-    # result = {}
-    # for job in data.get("jobs", []):
-    #     pass
-    # return result
+
+    def get_runs(data, path):
+        results = {}
+        if isinstance(data, dict):
+            if "run" in data:
+                script = data["run"]
+                if isinstance(script, str):
+                    results[f"{path}/run"] = script
+                elif isinstance(script, list):
+                    # note: GitHub does not support an array of strings for `run`,
+                    # should we ignore this case?
+                    results[f"{path}/run"] = "\n".join(script)
+            for key in data:
+                results.update(get_runs(data[key], f"{path}/{key}"))
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                results.update(get_runs(item, f"{path}/{i}"))
+        elif (
+            isinstance(data, str)
+            or isinstance(data, int)
+            or isinstance(data, float)
+            or isinstance(data, None)
+        ):
+            pass
+        return results
+
+    result = {}
+    if not "jobs" in data:
+        return result
+    result = get_runs(data['jobs'], 'jobs')
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
 
 
 def get_gitlab_scripts(data):

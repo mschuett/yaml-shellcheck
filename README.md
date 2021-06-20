@@ -52,3 +52,43 @@ lint_yaml_shellcheck:
   script:
     - find . -name \*.yaml -or -name \*.yml | xargs python3 yaml_shellcheck.py
 ```
+
+## File Formats
+
+The main function of this tool is to encode which elements inside the YAML data
+contain shell scripts. So far three formats are supported.
+
+### Bitbucket Pipelines
+
+Handling Bitbucket files is very simple. A file with a `pipelines` object
+is read as a Bitbucket Pipeline file, and every `script` attribute inside
+is considered a shell script.
+
+### GitHub Actions
+
+GitHub Actions are similar to Bitbucket. A file with a `jobs` object
+is read as a GitHub Actions file, and every `run` attribute inside
+is considered a shell script.
+
+* `shell` attributes are not supported  
+this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line
+* [expressions](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions)
+  are not supported. if used in shell scripts they will be passed on to `shellcheck` and raise warnings
+  (often [SC2086](https://github.com/koalaman/shellcheck/wiki/SC2086) for quoting and [SC1083](https://github.com/koalaman/shellcheck/wiki/SC1083) for literal `}`)
+
+### GitLab CI Pipelines
+
+GitLab CI files have more structure, and we try to support more of it.
+
+* `script`, `before_script`, `after_script`: GitLab has not one, but three different shell script attributes which are read as three independent scripts. In GitLab `before_script` and `script` get concatenated and executed in a single shell process, whereas `after_script` always starts a new shell process. This has some implications for variable visibility etc. and is ignored in this tool.
+* `include` is not supported, every YAML file is parsed on its own. For large pipelines with many includes you may want to use other tools to resolve all include and then run yaml_shellcheck on the merged YAML file.
+* `!reference` is semi-supported, we only read the tag and insert a placeholder in order not to break the YAML parsing (todo, should be simple to improve).
+* `variables` are supported experimentally, we try to read per-file and per-job variables and insert them into the shell script file. (To be honest, I am not sure this is actually useful, so I might remove that overhead in future versions.)
+
+### Common
+
+Files are read with a YAML parser, so all YAML anchors are resolved.
+There is no additional check on data types or structure.
+
+Following the Bitbucket/GitLab usage a script block may contain a string or an
+array of strings.
