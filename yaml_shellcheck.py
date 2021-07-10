@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+import re
 import sys
 
 from ruamel.yaml import YAML
@@ -120,12 +121,15 @@ def get_github_scripts(data):
         if isinstance(data, dict):
             if "run" in data:
                 script = data["run"]
-                if isinstance(script, str):
-                    results[f"{path}/run"] = script
-                elif isinstance(script, list):
-                    # note: GitHub does not support an array of strings for `run`,
-                    # should we ignore this case?
-                    results[f"{path}/run"] = "\n".join(script)
+                if not isinstance(script, str):
+                    raise ValueError("unexpected format of 'run' element, expected string and found " + type(script))
+
+                # GitHub Actions uses '${{ foo }}' for context expressions,
+                # we try to be useful and replace these with a simple shell variable
+                script = re.sub(r'\$\{\{.*\}\}', '$ACTION_EXPRESSION', script)
+
+                results[f"{path}/run"] = script
+
             for key in data:
                 results.update(get_runs(data[key], f"{path}/{key}"))
         elif isinstance(data, list):

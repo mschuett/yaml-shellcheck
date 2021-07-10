@@ -72,9 +72,7 @@ is considered a shell script.
 
 * `shell` attributes are not supported  
 this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line
-* [expressions](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions)
-  are not supported. if used in shell scripts they will be passed on to `shellcheck` and raise warnings
-  (often [SC2086](https://github.com/koalaman/shellcheck/wiki/SC2086) for quoting and [SC1083](https://github.com/koalaman/shellcheck/wiki/SC1083) for literal `}`)
+* [expressions](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions) get replaced with a simple variable before running shellcheck
 
 ### GitLab CI Pipelines
 
