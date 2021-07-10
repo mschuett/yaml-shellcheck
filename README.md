@@ -3,7 +3,11 @@
 [![Docker Repository on Quay](https://quay.io/repository/mschuette/yaml-shellcheck/status "Docker Repository on Quay")](https://quay.io/repository/mschuette/yaml-shellcheck)
 
 Wrapper script to run [shellcheck](https://github.com/koalaman/shellcheck) on YAML CI-config files.
-Currently supported formats are [Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/) and [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html).
+Currently supported formats are
+[Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/),
+[GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html),
+[GitHub Actions](https://docs.github.com/en/actions),
+and (very limited) [Ansible](https://docs.ansible.com/ansible/2.9/modules/shell_module.html)
 
 ## Usage
 
@@ -82,6 +86,13 @@ GitLab CI files have more structure, and we try to support more of it.
 * `include` is not supported, every YAML file is parsed on its own. For large pipelines with many includes you may want to use other tools to resolve all include and then run yaml_shellcheck on the merged YAML file.
 * `!reference` is semi-supported, we only read the tag and insert a placeholder in order not to break the YAML parsing (todo, should be simple to improve).
 * `variables` are supported experimentally, we try to read per-file and per-job variables and insert them into the shell script file. (To be honest, I am not sure this is actually useful, so I might remove that overhead in future versions.)
+
+### Ansible
+
+Ansible support is very limited. This tool reads Ansible task files with plain lists of task objects, and it will check all `shell` (or `ansible.builtin.shell`) tasks.
+
+* Playbook files are not supported yet.
+* [Blocks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_blocks.html) (`block`) are not supported yet.
 
 ### Common
 

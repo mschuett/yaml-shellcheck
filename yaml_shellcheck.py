@@ -100,7 +100,7 @@ def get_bitbucket_scripts(data):
         return results
 
     result = {}
-    if not "pipelines" in data:
+    if "pipelines" not in data:
         return result
     result = get_scripts(data["pipelines"], "pipelines")
     logging.debug("got scripts: %s", result)
@@ -122,11 +122,14 @@ def get_github_scripts(data):
             if "run" in data:
                 script = data["run"]
                 if not isinstance(script, str):
-                    raise ValueError("unexpected format of 'run' element, expected string and found " + type(script))
+                    raise ValueError(
+                        "unexpected format of 'run' element, expected string and found "
+                        + type(script)
+                    )
 
                 # GitHub Actions uses '${{ foo }}' for context expressions,
                 # we try to be useful and replace these with a simple shell variable
-                script = re.sub(r'\$\{\{.*\}\}', '$ACTION_EXPRESSION', script)
+                script = re.sub(r"\${{.*}}", "$ACTION_EXPRESSION", script)
 
                 results[f"{path}/run"] = script
 
@@ -145,9 +148,9 @@ def get_github_scripts(data):
         return results
 
     result = {}
-    if not "jobs" in data:
+    if "jobs" not in data:
         return result
-    result = get_runs(data['jobs'], 'jobs')
+    result = get_runs(data["jobs"], "jobs")
     logging.debug("got scripts: %s", result)
     for key in result:
         logging.debug("%s: %s", key, result[key])
@@ -190,18 +193,64 @@ def get_gitlab_scripts(data):
     return result
 
 
+def get_ansible_scripts(data):
+    """Ansible: read all `shell` tasks
+    https://docs.ansible.com/ansible/2.9/modules/shell_module.html
+    """
+
+    result = {}
+    if not isinstance(data, list):
+        return result
+
+    for i, task in enumerate(data):
+        # look for simple and qualified collection names:
+        for key in ["shell", "ansible.builtin.shell"]:
+            if key in task:
+                # may be a string or a dict
+                if isinstance(task[key], str):
+                    script = task[key]
+                elif isinstance(task[key], dict) and "cmd" in task[key]:
+                    script = task[key]["cmd"]
+                else:
+                    raise ValueError(f"unexpected data in element {i}/{key}")
+
+                # we cannot evaluate Jinja templates
+                # at least try to be useful and replace every expression with a variable
+                # we do not handle Jinja statements like loops of if/then/else
+                script = re.sub(r"{{.*}}", "$JINJA_EXPRESSION", script)
+
+                # try to add shebang line from 'executable' if it looks like a shell
+                executable = task.get("args", {}).get("executable", None)
+                if executable and "sh" not in executable:
+                    logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
+                    # ignore this task
+                    continue
+                elif executable:
+                    script = f"#!{executable}\n" + script
+                result[f"{i}/{key}"] = script
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
+
+
 def select_yaml_schema(data, filename):
     # try to determine CI system and file format,
     # returns the right get function
-    if "pipelines" in data:
+    if isinstance(data, dict) and "pipelines" in data:
         logging.info(f"read {filename} as Bitbucket Pipelines config...")
         return get_bitbucket_scripts
-    elif "on" in data and "jobs" in data:
+    elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts
-    else:
+    elif isinstance(data, dict):
         logging.info(f"read {filename} as GitLab CI config...")
         return get_gitlab_scripts
+    elif isinstance(data, list):
+        logging.info(f"read {filename} as Ansible file...")
+        return get_ansible_scripts
+    else:
+        raise ValueError("cannot determine CI tool from YAML structure")
 
 
 def read_yaml_file(filename):
@@ -246,14 +295,15 @@ def write_tmp_files(args, data):
         subdir = outdir / filename
         # remove all '..' elements from the tmp file paths
         if ".." in subdir.parts:
-            parts = filter(lambda a: a != '..', list(subdir.parts))
+            parts = filter(lambda a: a != "..", list(subdir.parts))
             subdir = Path(*parts)
         subdir.mkdir(exist_ok=True, parents=True)
         for jobkey in data[filename]:
             scriptfilename = subdir / jobkey
             scriptfilename.parent.mkdir(exist_ok=True, parents=True)
             with open(scriptfilename, "w") as f:
-                f.write(f"{args.shell}\n")
+                if not data[filename][jobkey].startswith("#!"):
+                    f.write(f"{args.shell}\n")
                 f.write(data[filename][jobkey])
                 rel_filename = str(scriptfilename.relative_to(outdir))
                 filelist.append(rel_filename)
