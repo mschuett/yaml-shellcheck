@@ -1,0 +1,41 @@
+image: "asciidoctor/docker-asciidoctor"
+
+stages:
+  - documentation
+
+variables:
+  foobar: quux
+
+.setup:
+  script:
+    - echo creating environment
+
+html:
+  stage: documentation
+  script:
+    - cd doc
+    - make html
+    - echo "$PWD"
+    - echo "$foobar"
+    - !reference [.setup, script]
+  artifacts:
+    name: "${CI_PROJECT_NAME}-${CI_JOB_NAME}-${CI_COMMIT_SHA}"
+    paths:
+      - doc/*.html
+      - doc/assets/
+
+pdf:
+  stage: documentation
+  script: cd doc; make pdf
+  artifacts:
+    name: "${CI_PROJECT_NAME}-${CI_JOB_NAME}-${CI_COMMIT_SHA}"
+    paths:
+      - doc/*.pdf
+
+epub:
+  stage: documentation
+  script:
+    - cd doc; asciidoctor-epub3 --out-file documentation.epub epub_index.adoc
+  artifacts:
+    paths:
+     - doc/documentation.epub

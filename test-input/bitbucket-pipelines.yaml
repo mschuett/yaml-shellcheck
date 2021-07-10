@@ -1,0 +1,91 @@
+# from https://gist.github.com/sprankhub/21351eb61b1339b05d7e3cd52a51fe48
+image: php:7.2-apache
+pipelines:
+  default:
+    - step:
+        script:
+          - |
+            if [ "$RSYNC_RSH" ]; then echo "Using rsync rsh command: $RSYNC_RSH"; fi
+          - rsync -avr --exclude .git --exclude node_modules ./ $RSYNC_TARGET
+  pull-requests:
+    '**':
+      - parallel:
+          - step:
+              name: Linting & Static Checks & Unit Tests
+              caches:
+                - composer
+              script:
+                - apt-get update && apt-get install -y libxslt1-dev libxml2-dev libicu-dev libpng-dev unzip
+                - docker-php-ext-install -j$(nproc) bcmath gd intl pdo_mysql soap sockets xsl zip
+                - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+                - composer install
+                - find src/ -type f -name '*.php' -print0 | xargs -0 -n1 -P4 php -l -n | (! grep -v "No syntax errors detected" )
+                - ./vendor/bin/phpcs -n --standard=vendor/magento/magento-coding-standard/Magento2 src
+                - ./vendor/bin/phpstan analyze --level=8 src
+                - ./vendor/bin/phpunit -c dev/tests/unit/phpunit-client-name.xml --testsuite Client_Name_Unit_Tests
+          - step:
+              name: Integration Tests
+              caches:
+                - composer
+              services:
+                - mariadb
+              script:
+                - apt-get update && apt-get install -y libxslt1-dev libxml2-dev libicu-dev libpng-dev unzip openssh-client libfreetype6-dev libjpeg-dev default-mysql-client
+                - docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+                - docker-php-ext-install -j$(nproc) bcmath gd intl pdo_mysql soap sockets xsl zip
+                # avoid memory issues - see https://devdocs.magento.com/guides/v2.3/install-gde/prereq/php-settings.html#check-php-settings
+                - echo 'memory_limit = 3G' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini
+                - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+                - composer install
+                - mysql -h 127.0.0.1 -u root -ppassword -e 'CREATE DATABASE `integration-tests-db`;'
+                - cp dev/tests/integration/etc/install-config-mysql.php.dist dev/tests/integration/etc/install-config-mysql.php
+                - sed -i -e "s/'localhost'/'127.0.0.1'/" -e "s/'123123q'/'password'/" -e "s/'magento_integration_tests'/'integration-tests-db'/" -e "/'amqp-/d" dev/tests/integration/etc/install-config-mysql.php
+                - ./vendor/bin/phpunit -c $BITBUCKET_CLONE_DIR/dev/tests/integration/phpunit-client-name.xml --testsuite Client_Name_Integration_Tests
+          - step:
+              name: MFTF Tests
+              caches:
+                - composer
+              services:
+                - mariadb
+              script:
+                - apt-get update && apt-get install -y libxslt1-dev libxml2-dev libicu-dev libpng-dev unzip openssh-client libfreetype6-dev libjpeg-dev default-mysql-client chromium chromium-driver
+                - mkdir -p /usr/share/man/man1 && apt-get install -y default-jre
+                - curl -sSL -o selenium-server-standalone.jar https://bit.ly/2TlkRyu
+                - docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+                - docker-php-ext-install -j$(nproc) bcmath gd intl pdo_mysql soap sockets xsl zip
+                - find var generated pub/static pub/media app/etc -type d -exec chmod g+s {} +
+                - chown -R :www-data .
+                # avoid memory issues - see https://devdocs.magento.com/guides/v2.3/install-gde/prereq/php-settings.html#check-php-settings
+                - echo 'memory_limit = 3G' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini
+                - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+                - composer install
+                - mysql -h 127.0.0.1 -u root -ppassword -e 'CREATE DATABASE `mftf-tests-db`;'
+                - scp web-user@12.34.56.78:/path/to/your/db.sql.gz .
+                - gunzip db.sql.gz
+                - mysql -h 127.0.0.1 -u root -ppassword mftf-tests-db < db.sql
+                - bin/magento setup:install --base-url=http://127.0.0.1/ --backend-frontname=backendname --db-host=127.0.0.1 --db-name=mftf-tests-db --db-user=root --db-password=password --admin-email=a@b.com --admin-user=admin --admin-password=password123! --admin-firstname=Firstname --admin-lastname=Lastname
+                - bin/magento config:set web/unsecure/base_url 'http://127.0.0.1/'
+                - bin/magento config:set web/secure/base_url 'http://127.0.0.1/'
+                - bin/magento config:set cms/wysiwyg/enabled disabled
+                - bin/magento config:set admin/security/admin_account_sharing 1
+                - bin/magento config:set admin/security/use_form_key 0
+                - bin/magento config:set catalog/search/engine mysql
+                - vendor/bin/mftf build:project
+                - sed -i -e "s/http:\/\/devdocs.magento.com\//http:\/\/127.0.0.1\//" -e "s/MAGENTO_BACKEND_NAME=admin/MAGENTO_BACKEND_NAME=backendname/" -e "s/MAGENTO_ADMIN_USERNAME=admin/MAGENTO_ADMIN_USERNAME=admin/" -e "s/123123q/password123!/" dev/tests/acceptance/.env
+                - sed -i -e 's/"--enable-Passthrough"]/"--enable-Passthrough", "--headless", "--no-sandbox"]/' dev/tests/acceptance/tests/functional.suite.yml
+                - sed -i -e 's/ 30/ 300/' dev/tests/acceptance/tests/functional.suite.yml
+                - cp dev/tests/acceptance/.htaccess.sample dev/tests/acceptance/.htaccess
+                - java -Dwebdriver.chrome.driver=$(which chromedriver) -jar selenium-server-standalone.jar &
+                - sed -ri -e "s!/var/www/html!$BITBUCKET_CLONE_DIR!g" /etc/apache2/sites-available/*.conf
+                - sed -ri -e "s!/var/www/!$BITBUCKET_CLONE_DIR!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+                - a2enmod rewrite
+                - service apache2 restart
+                - mkdir -p var/session
+                - chmod 777 var/session
+                - vendor/bin/mftf run:group ClientName
+definitions:
+  services:
+    mariadb:
+      image: mariadb:10.3
+      variables:
+        MYSQL_ROOT_PASSWORD: password
