@@ -1,0 +1,32 @@
+---
+# no real playbook, only a test structure put together from snippets in
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#playbook-execution and
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_blocks.html#playbooks-blocks
+- name: Update web servers
+  hosts: webservers
+  remote_user: root
+
+  tasks:
+  - name: Ensure apache is at the latest version
+    ansible.builtin.yum:
+      name: httpd
+      state: latest
+  - name: Install, configure, and start Apache
+    block:
+      - name: foo
+        ansible.builtin.shell: service php-fpm restart
+      - name: bar
+        ansible.builtin.shell: service httpd restart
+  - name: Test some php app
+    ansible.builtin.shell: |
+      apt-get update && apt-get install -y libxslt1-dev libxml2-dev libicu-dev libpng-dev unzip
+      docker-php-ext-install -j$(nproc) bcmath gd intl pdo_mysql soap sockets xsl zip
+      curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+      composer install
+      find src/ -type f -name '*.php' -print0 | xargs -0 -n1 -P4 php -l -n | (! grep -v "No syntax errors detected" )
+      ./vendor/bin/phpcs -n --standard=vendor/magento/magento-coding-standard/Magento2 src
+      ./vendor/bin/phpstan analyze --level=8 src
+      ./vendor/bin/phpunit -c dev/tests/unit/phpunit-client-name.xml --testsuite Client_Name_Unit_Tests
+    args:
+      chdir: somedir/
+      creates: /usr/local/bin/composer

@@ -89,10 +89,13 @@ GitLab CI files have more structure, and we try to support more of it.
 
 ### Ansible
 
-Ansible support is very limited. This tool reads Ansible task files with plain lists of task objects, and it will check all `shell` (or `ansible.builtin.shell`) tasks.
+Ansible support is limited. This tool reads Ansible playbook or task files with YAML lists.
 
-* Playbook files are not supported yet.
-* [Blocks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_blocks.html) (`block`) are not supported yet.
+So far it recognizes three kinds of list elements:
+* Tasks using the `shell` (or `ansible.builtin.shell`) [module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html#ansible-collections-ansible-builtin-shell-module).
+* Playbook elements, containing a `tasks` attribute.
+* [Blocks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_blocks.html) (`block`) for nested task lists.
+* Jinja expressions (`{{ ... }}`) are ignored and replaced with placeholder shell variables.
 
 ### Common
 

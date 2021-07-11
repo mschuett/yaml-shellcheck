@@ -198,36 +198,46 @@ def get_ansible_scripts(data):
     https://docs.ansible.com/ansible/2.9/modules/shell_module.html
     """
 
+    def get_shell_tasks(data, path):
+        results = {}
+        for i, task in enumerate(data):
+            # look for simple and qualified collection names:
+            for key in ["shell", "ansible.builtin.shell"]:
+                if key in task:
+                    # may be a string or a dict
+                    if isinstance(task[key], str):
+                        script = task[key]
+                    elif isinstance(task[key], dict) and "cmd" in task[key]:
+                        script = task[key]["cmd"]
+                    else:
+                        raise ValueError(f"unexpected data in element {path}/{i}/{key}")
+
+                    # we cannot evaluate Jinja templates
+                    # at least try to be useful and replace every expression with a variable
+                    # we do not handle Jinja statements like loops of if/then/else
+                    script = re.sub(r"{{.*}}", "$JINJA_EXPRESSION", script)
+
+                    # try to add shebang line from 'executable' if it looks like a shell
+                    executable = task.get("args", {}).get("executable", None)
+                    if executable and "sh" not in executable:
+                        logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
+                        # ignore this task
+                        continue
+                    elif executable:
+                        script = f"#!{executable}\n" + script
+                    results[f"{path}/{i}/{key}"] = script
+            if "tasks" in task:
+                results.update(get_shell_tasks(task["tasks"], f"{path}/{i}"))
+            if "block" in task:
+                results.update(get_shell_tasks(task["block"], f"{path}/block-{i}"))
+        return results
+
     result = {}
-    if not isinstance(data, list):
+    if isinstance(data, list):
+        result = get_shell_tasks(data, "root")
+    else:
         return result
 
-    for i, task in enumerate(data):
-        # look for simple and qualified collection names:
-        for key in ["shell", "ansible.builtin.shell"]:
-            if key in task:
-                # may be a string or a dict
-                if isinstance(task[key], str):
-                    script = task[key]
-                elif isinstance(task[key], dict) and "cmd" in task[key]:
-                    script = task[key]["cmd"]
-                else:
-                    raise ValueError(f"unexpected data in element {i}/{key}")
-
-                # we cannot evaluate Jinja templates
-                # at least try to be useful and replace every expression with a variable
-                # we do not handle Jinja statements like loops of if/then/else
-                script = re.sub(r"{{.*}}", "$JINJA_EXPRESSION", script)
-
-                # try to add shebang line from 'executable' if it looks like a shell
-                executable = task.get("args", {}).get("executable", None)
-                if executable and "sh" not in executable:
-                    logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
-                    # ignore this task
-                    continue
-                elif executable:
-                    script = f"#!{executable}\n" + script
-                result[f"{i}/{key}"] = script
     logging.debug("got scripts: %s", result)
     for key in result:
         logging.debug("%s: %s", key, result[key])
@@ -243,12 +253,12 @@ def select_yaml_schema(data, filename):
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts
-    elif isinstance(data, dict):
-        logging.info(f"read {filename} as GitLab CI config...")
-        return get_gitlab_scripts
     elif isinstance(data, list):
         logging.info(f"read {filename} as Ansible file...")
         return get_ansible_scripts
+    elif isinstance(data, dict):
+        logging.info(f"read {filename} as GitLab CI config...")
+        return get_gitlab_scripts
     else:
         raise ValueError("cannot determine CI tool from YAML structure")
 
