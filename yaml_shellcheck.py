@@ -168,7 +168,9 @@ def get_gitlab_scripts(data):
         elif isinstance(data, list):
             return "\n".join([flatten_nested_string_lists(item) for item in data])
         else:
-            raise ValueError(f"unexpected data type {type(data)} in script section: {data}")
+            raise ValueError(
+                f"unexpected data type {type(data)} in script section: {data}"
+            )
 
     result = {}
     for jobkey in data:
@@ -208,7 +210,9 @@ def get_ansible_scripts(data):
                     # try to add shebang line from 'executable' if it looks like a shell
                     executable = task.get("args", {}).get("executable", None)
                     if executable and "sh" not in executable:
-                        logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
+                        logging.debug(
+                            f"unsupported shell %s, in %d/%s", executable, i, key
+                        )
                         # ignore this task
                         continue
                     elif executable:
@@ -245,6 +249,7 @@ def select_yaml_schema(data, filename):
         logging.info(f"read {filename} as Ansible file...")
         return get_ansible_scripts
     elif isinstance(data, dict):
+        # TODO: GitLab is the de facto default value, we should add more checks here
         logging.info(f"read {filename} as GitLab CI config...")
         return get_gitlab_scripts
     else:
