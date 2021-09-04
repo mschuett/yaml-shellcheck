@@ -14,8 +14,14 @@ html:
   stage: documentation
   script:
     - cd doc
-    - make html
-    - echo "$PWD"
+    - make
+    -
+      -
+        - make html
+        - echo "$PWD"
+      -
+        - echo "scripts may be in nested arrays"
+        - echo "rarely used, but visible with !reference tags"
     - echo "$foobar"
     - !reference [.setup, script]
   artifacts:

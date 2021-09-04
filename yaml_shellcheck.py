@@ -171,6 +171,15 @@ def get_gitlab_scripts(data):
             [f'export {key}="{value}"\n' for key, value in merged_variables.items()]
         )
 
+    def flatten_nested_string_lists(data):
+        """helper function"""
+        if isinstance(data, str):
+            return data
+        elif isinstance(data, list):
+            return "\n".join([flatten_nested_string_lists(item) for item in data])
+        else:
+            raise ValueError(f"unexpected data type {type(data)} in script section: {data}")
+
     result = {}
     for jobkey in data:
         if not isinstance(data[jobkey], dict):
@@ -186,10 +195,7 @@ def get_gitlab_scripts(data):
             result[f"{jobkey}/{section}"] = variables_setup_script
             # then add the "real" script block
             script = data[jobkey][section]
-            if isinstance(script, str):
-                result[f"{jobkey}/{section}"] += script
-            elif isinstance(script, list):
-                result[f"{jobkey}/{section}"] += "\n".join(script)
+            result[f"{jobkey}/{section}"] += flatten_nested_string_lists(script)
     return result
 
 
