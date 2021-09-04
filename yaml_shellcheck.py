@@ -157,6 +157,23 @@ def get_github_scripts(data):
     return result
 
 
+def get_drone_scripts(data):
+    """Drone CI has a simple file format, with all scripts in
+    `lists in steps[].commands[]`, see https://docs.drone.io/yaml/exec/
+    """
+    result = {}
+    if "steps" not in data:
+        return result
+    jobkey = data.get("name", "unknown")
+    for item in data["steps"]:
+        section = item.get("name")
+        result[f"{jobkey}/{section}"] = "\n".join(item.get("commands", []))
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
+
+
 def get_gitlab_scripts(data):
     """GitLab is nice, as far as I can tell its files have a
     flat hierarchy with many small job entities"""
@@ -245,6 +262,11 @@ def select_yaml_schema(data, filename):
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts
+    elif (
+        isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data
+    ):
+        logging.info(f"read {filename} as Drone CI config...")
+        return get_drone_scripts
     elif isinstance(data, list):
         logging.info(f"read {filename} as Ansible file...")
         return get_ansible_scripts

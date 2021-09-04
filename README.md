@@ -7,6 +7,7 @@ Currently supported formats are
 [Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/),
 [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html),
 [GitHub Actions](https://docs.github.com/en/actions),
+[Drone CI](https://docs.drone.io/pipeline/overview/),
 and (very limited) [Ansible](https://docs.ansible.com/ansible/2.9/modules/shell_module.html)
 
 ## Usage
@@ -77,6 +78,12 @@ is considered a shell script.
 * `shell` attributes are not supported  
 this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line
 * [expressions](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions) get replaced with a simple variable before running shellcheck
+
+### Drone CI
+
+Drone CI has a very simple file structure. As far as I can tell it only has
+conditions, but no deep nesting or includes. All command lists are concatenated
+and checked as a shell script.
 
 ### GitLab CI Pipelines
 
