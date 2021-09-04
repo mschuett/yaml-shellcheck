@@ -161,16 +161,6 @@ def get_gitlab_scripts(data):
     """GitLab is nice, as far as I can tell its files have a
     flat hierarchy with many small job entities"""
 
-    def merge_variables(data, jobkey):
-        """helper function, gather variable definition from file and job"""
-        job_variables = data[jobkey].get("variables", {}) or {}
-        merged_variables = data.get("variables", {})
-        merged_variables.update(job_variables)
-        logging.debug("in job %s, merged variables %s", jobkey, job_variables)
-        return "".join(
-            [f'export {key}="{value}"\n' for key, value in merged_variables.items()]
-        )
-
     def flatten_nested_string_lists(data):
         """helper function"""
         if isinstance(data, str):
@@ -184,18 +174,10 @@ def get_gitlab_scripts(data):
     for jobkey in data:
         if not isinstance(data[jobkey], dict):
             continue
-
-        # todo: only generate if job has a script
-        variables_setup_script = merge_variables(data, jobkey)
-
         for section in ["script", "before_script", "after_script"]:
-            if section not in data[jobkey]:
-                continue
-            # pre-init with variable setup
-            result[f"{jobkey}/{section}"] = variables_setup_script
-            # then add the "real" script block
-            script = data[jobkey][section]
-            result[f"{jobkey}/{section}"] += flatten_nested_string_lists(script)
+            if section in data[jobkey]:
+                script = data[jobkey][section]
+                result[f"{jobkey}/{section}"] = flatten_nested_string_lists(script)
     return result
 
 

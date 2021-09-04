@@ -85,7 +85,7 @@ GitLab CI files have more structure, and we try to support more of it.
 * `script`, `before_script`, `after_script`: GitLab has not one, but three different shell script attributes which are read as three independent scripts. In GitLab `before_script` and `script` get concatenated and executed in a single shell process, whereas `after_script` always starts a new shell process. This has some implications for variable visibility etc. and is ignored in this tool.
 * `include` is not supported, every YAML file is parsed on its own. For large pipelines with many includes you may want to use other tools to resolve all include and then run yaml_shellcheck on the merged YAML file.
 * `!reference` is semi-supported, we only read the tag and insert a placeholder in order not to break the YAML parsing (todo, should be simple to improve).
-* `variables` are supported experimentally, we try to read per-file and per-job variables and insert them into the shell script file. (To be honest, I am not sure this is actually useful, so I might remove that overhead in future versions.)
+* decided to _not_ support `variables` checking. `shellcheck` checks lower-case variables for assignments before usage, but it assumes all upper-case variable names are externally provided. -- IMHO GitLab CI jobs should follow that convention and use upper-case variable names for CI/CD variables.
 
 ### Ansible
 

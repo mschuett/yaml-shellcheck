@@ -4,7 +4,7 @@ stages:
   - documentation
 
 variables:
-  foobar: quux
+  FOOBAR: quux
 
 .setup:
   script:
@@ -22,7 +22,10 @@ html:
       -
         - echo "scripts may be in nested arrays"
         - echo "rarely used, but visible with !reference tags"
-    - echo "$foobar"
+    # shellcheck will check lower case variables,
+    # but ignores all upper case variables
+    - echo "$FOOBAR"
+    - echo "$FOO"
     - !reference [.setup, script]
   artifacts:
     name: "${CI_PROJECT_NAME}-${CI_JOB_NAME}-${CI_COMMIT_SHA}"
