@@ -38,6 +38,17 @@ optional arguments:
                         shellcheck command to run (default: shellcheck)
 ```
 
+### Exit Status/Return Values
+
+The tool exits with the exit code from `shellcheck`, from their man page:
+
+    ShellCheck uses the follow exit codes:
+    • 0: All files successfully scanned with no issues.
+    • 1: All files successfully scanned with some issues.
+    • 2: Some files could not be processed (e.g. file not found).
+    • 3: ShellCheck was invoked with bad syntax (e.g. unknown flag).
+    • 4: ShellCheck was invoked with bad options (e.g. unknown formatter).
+
 ### Docker
 
 ```shell

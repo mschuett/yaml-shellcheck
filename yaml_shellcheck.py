@@ -349,6 +349,7 @@ def run_shellcheck(args, filenames):
         cwd=args.outdir,
     )
     logger.debug("subprocess result: %s", proc)
+    return proc
 
 
 def cleanup_files(args):
@@ -371,5 +372,7 @@ if __name__ == "__main__":
         except ValueError as e:
             # only log, then ignore the error
             logger.error("%s", e)
-    run_shellcheck(args, filenames)
+    check_proc_result = run_shellcheck(args, filenames)
     cleanup_files(args)
+    # exit with shellcheck exit code
+    sys.exit(check_proc_result.returncode)
