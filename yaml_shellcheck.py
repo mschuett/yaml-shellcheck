@@ -275,7 +275,7 @@ def select_yaml_schema(data, filename):
         logging.info(f"read {filename} as GitLab CI config...")
         return get_gitlab_scripts
     else:
-        raise ValueError("cannot determine CI tool from YAML structure")
+        raise ValueError(f"read {filename}, cannot determine CI tool from YAML structure")
 
 
 def read_yaml_file(filename):
@@ -364,8 +364,12 @@ if __name__ == "__main__":
 
     filenames = []
     for filename in args.files:
-        result = {filename: read_yaml_file(filename)}
-        logger.debug("%s", result)
-        filenames.extend(write_tmp_files(args, result))
+        try:
+            result = {filename: read_yaml_file(filename)}
+            logger.debug("%s", result)
+            filenames.extend(write_tmp_files(args, result))
+        except ValueError as e:
+            # only log, then ignore the error
+            logger.error("%s", e)
     run_shellcheck(args, filenames)
     cleanup_files(args)
