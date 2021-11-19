@@ -157,6 +157,58 @@ def get_github_scripts(data):
     return result
 
 
+def get_circleci_scripts(data):
+    """CircleCI: match on `jobs.*.steps.run`,
+    https://circleci.com/docs/2.0/configuration-reference/
+    """
+
+    result = {}
+    if "jobs" not in data:
+        return result
+    for jobkey, job in data["jobs"].items():
+        steps = job.get("steps", [])
+        logging.debug("job %s: %s", jobkey, steps)
+        for step_num, step in enumerate(steps):
+            if not (isinstance(step, dict) and "run" in step):
+                logging.debug("job %s, step %d: no run declaration", jobkey, step_num)
+                continue
+            run = step["run"]
+            shell = None
+            logging.debug("job %s, step %d: found %s %s", jobkey, step_num, type(run), run)
+            # challenge: the run element can have different data types
+            if isinstance(run, dict):
+                if "command" in run:
+                    script = run["command"]
+                    if "shell" in run:
+                        shell = run["shell"]
+                else:
+                    pass  # could be a directive like `save_cache`
+            elif isinstance(run, str):
+                script = run
+            elif isinstance(run, list):
+                script = "\n".join(run)
+            else:
+                raise ValueError(f"unexpected data type {type(run)} in job {jobkey} step {step_num}")
+
+            # CircleCI uses '<< foo >>' for context parameters,
+            # we try to be useful and replace these with a simple shell variable
+            script = re.sub(r'<<\s*([^\s>]*)\s*>>', r'"$PARAMETER"', script)
+            # add shebang line if we saw a 'shell' attribute
+            # TODO: we do not check for supported shell like we do in get_ansible_scripts
+            # TODO: not sure what is the best handling of bash vs. sh as default here
+            if not shell:
+                # CircleCI default shell, see doc "Default shell options"
+                shell = "/bin/bash"
+
+            script = f"#!{shell}\n" + script
+            result[f"{jobkey}/{step_num}"] = script
+
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
+
+
 def get_drone_scripts(data):
     """Drone CI has a simple file format, with all scripts in
     `lists in steps[].commands[]`, see https://docs.drone.io/yaml/exec/
@@ -262,6 +314,9 @@ def select_yaml_schema(data, filename):
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts
+    elif isinstance(data, dict) and "version" in data and "jobs" in data:
+        logging.info(f"read {filename} as CircleCI config...")
+        return get_circleci_scripts
     elif (
         isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data
     ):
@@ -375,4 +430,4 @@ if __name__ == "__main__":
     check_proc_result = run_shellcheck(args, filenames)
     cleanup_files(args)
     # exit with shellcheck exit code
-    sys.exit(check_proc_result.returncode)
+    sys.exit(check_proc_result.returncode if check_proc_result else 0)

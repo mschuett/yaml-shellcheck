@@ -8,6 +8,7 @@ Currently supported formats are
 [GitLab CI](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html),
 [GitHub Actions](https://docs.github.com/en/actions),
 [Drone CI](https://docs.drone.io/pipeline/overview/),
+[CircleCI](https://circleci.com/docs/2.0/configuration-reference/),
 and (very limited) [Ansible](https://docs.ansible.com/ansible/2.9/modules/shell_module.html)
 
 ## Usage
@@ -95,6 +96,13 @@ this is a todo, it should be simple enough to only check `sh` and `bash` scripts
 Drone CI has a very simple file structure. As far as I can tell it only has
 conditions, but no deep nesting or includes. All command lists are concatenated
 and checked as a shell script.
+
+### CircleCI
+
+CircleCI has many options, but fortunately the nesting of its `jobs.*.steps.run` script elements is straightforward. All command lists are concatenated and checked as a shell script.
+
+* `shell` attributes are supported  
+* [pipeline values and parameters](https://circleci.com/docs/2.0/pipeline-variables/) are ignored and replaced with placeholder shell variables
 
 ### GitLab CI Pipelines
 
