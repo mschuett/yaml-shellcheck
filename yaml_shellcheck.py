@@ -108,8 +108,11 @@ class GenericConfigObject(object):
                 f.write(self.parsed_content[jobkey])
                 rel_filename = str(scriptfilename.relative_to(Path(base_outdir)))
                 self.tmp_filenames.append(rel_filename)
-                logger.debug("%s.write_tmp_files() wrote file %s",
-                             type(self).__name__, rel_filename)
+                logger.debug(
+                    "%s.write_tmp_files() wrote file %s",
+                    type(self).__name__,
+                    rel_filename,
+                )
 
 
 class BitbucketPipelineConfig(GenericConfigObject):
@@ -129,10 +132,14 @@ class BitbucketPipelineConfig(GenericConfigObject):
                 elif isinstance(script, list):
                     results[f"{path}/script"] = "\n".join(script)
             for key in data:
-                results.update(BitbucketPipelineConfig.__get_scripts(data[key], f"{path}/{key}"))
+                results.update(
+                    BitbucketPipelineConfig.__get_scripts(data[key], f"{path}/{key}")
+                )
         elif isinstance(data, list):
             for i, item in enumerate(data):
-                results.update(BitbucketPipelineConfig.__get_scripts(item, f"{path}/{i}"))
+                results.update(
+                    BitbucketPipelineConfig.__get_scripts(item, f"{path}/{i}")
+                )
         elif (
             isinstance(data, str)
             or isinstance(data, int)
@@ -178,7 +185,9 @@ class GitHubActionsConfig(GenericConfigObject):
                 results[f"{path}/run"] = script
 
             for key in data:
-                results.update(GitHubActionsConfig.__get_runs(data[key], f"{path}/{key}"))
+                results.update(
+                    GitHubActionsConfig.__get_runs(data[key], f"{path}/{key}")
+                )
         elif isinstance(data, list):
             for i, item in enumerate(data):
                 results.update(GitHubActionsConfig.__get_runs(item, f"{path}/{i}"))
@@ -223,11 +232,15 @@ class CircleCiConfig(GenericConfigObject):
             logging.debug("job %s: %s", jobkey, steps)
             for step_num, step in enumerate(steps):
                 if not (isinstance(step, dict) and "run" in step):
-                    logging.debug("job %s, step %d: no run declaration", jobkey, step_num)
+                    logging.debug(
+                        "job %s, step %d: no run declaration", jobkey, step_num
+                    )
                     continue
                 run = step["run"]
                 shell = None
-                logging.debug("job %s, step %d: found %s %s", jobkey, step_num, type(run), run)
+                logging.debug(
+                    "job %s, step %d: found %s %s", jobkey, step_num, type(run), run
+                )
                 # challenge: the run element can have different data types
                 if isinstance(run, dict):
                     if "command" in run:
@@ -241,11 +254,13 @@ class CircleCiConfig(GenericConfigObject):
                 elif isinstance(run, list):
                     script = "\n".join(run)
                 else:
-                    raise ValueError(f"unexpected data type {type(run)} in job {jobkey} step {step_num}")
+                    raise ValueError(
+                        f"unexpected data type {type(run)} in job {jobkey} step {step_num}"
+                    )
 
                 # CircleCI uses '<< foo >>' for context parameters,
                 # we try to be useful and replace these with a simple shell variable
-                script = re.sub(r'<<\s*([^\s>]*)\s*>>', r'"$PARAMETER"', script)
+                script = re.sub(r"<<\s*([^\s>]*)\s*>>", r'"$PARAMETER"', script)
                 # add shebang line if we saw a 'shell' attribute
                 # TODO: we do not check for supported shell like we do in get_ansible_scripts
                 # TODO: not sure what is the best handling of bash vs. sh as default here
@@ -262,6 +277,7 @@ class DroneCiConfig(GenericConfigObject):
     """Drone CI has a simple file format, with all scripts in
     `lists in steps[].commands[]`, see https://docs.drone.io/yaml/exec/
     """
+
     def __init__(self, data, filename):
         super().__init__(data, filename)
 
@@ -300,7 +316,9 @@ class GitLabConfig(GenericConfigObject):
         if isinstance(data, str):
             return data
         elif isinstance(data, list):
-            return "\n".join([GitLabConfig.__flatten_nested_string_lists(item) for item in data])
+            return "\n".join(
+                [GitLabConfig.__flatten_nested_string_lists(item) for item in data]
+            )
         else:
             raise ValueError(
                 f"unexpected data type {type(data)} in script section: {data}"
@@ -315,7 +333,9 @@ class GitLabConfig(GenericConfigObject):
             for section in ["script", "before_script", "after_script"]:
                 if section in data[jobkey]:
                     script = data[jobkey][section]
-                    result[f"{jobkey}/{section}"] = GitLabConfig.__flatten_nested_string_lists(script)
+                    result[
+                        f"{jobkey}/{section}"
+                    ] = GitLabConfig.__flatten_nested_string_lists(script)
         return result
 
 
@@ -356,9 +376,15 @@ class AnsibleShellConfig(GenericConfigObject):
                         script = f"#!{executable}\n" + script
                     results[f"{path}/{i}/{key}"] = script
             if "tasks" in task:
-                results.update(AnsibleShellConfig.__get_shell_tasks(task["tasks"], f"{path}/{i}"))
+                results.update(
+                    AnsibleShellConfig.__get_shell_tasks(task["tasks"], f"{path}/{i}")
+                )
             if "block" in task:
-                results.update(AnsibleShellConfig.__get_shell_tasks(task["block"], f"{path}/block-{i}"))
+                results.update(
+                    AnsibleShellConfig.__get_shell_tasks(
+                        task["block"], f"{path}/block-{i}"
+                    )
+                )
         return results
 
     def __init__(self, data, filename):
@@ -394,7 +420,9 @@ def select_yaml_schema(data, filename):
         logging.info(f"read {filename} as GitLab CI config...")
         return GitLabConfig
     else:
-        raise ValueError(f"read {filename}, cannot determine CI tool from YAML structure")
+        raise ValueError(
+            f"read {filename}, cannot determine CI tool from YAML structure"
+        )
 
 
 def read_yaml_file(filename):
