@@ -78,7 +78,6 @@ class GenericConfigObject(object):
     def __init__(self, data, filename):
         logging.debug("GenericConfigObject.__init__() from %s", self.__class__.__name__)
         self.parsed_content = {}
-        self.parsed_success = False
         self.input_filename = filename
         self.tmp_filenames = []
 
@@ -156,7 +155,6 @@ class BitbucketPipelineConfig(GenericConfigObject):
             self.parsed_content = {}
         else:
             self.parsed_content = self.__get_scripts(data["pipelines"], "pipelines")
-        self.parsed_success = True
 
 
 class GitHubActionsConfig(GenericConfigObject):
@@ -207,7 +205,6 @@ class GitHubActionsConfig(GenericConfigObject):
             self.parsed_content = {}
         else:
             self.parsed_content = self.__get_runs(data["jobs"], "jobs")
-        self.parsed_success = True
 
 
 class CircleCiConfig(GenericConfigObject):
@@ -222,7 +219,6 @@ class CircleCiConfig(GenericConfigObject):
             self.parsed_content = {}
         else:
             self.parsed_content = self.__get_jobs(data)
-        self.parsed_success = True
 
     @staticmethod
     def __get_jobs(data):
@@ -285,7 +281,6 @@ class DroneCiConfig(GenericConfigObject):
             self.parsed_content = {}
         else:
             self.parsed_content = self.__get_jobs(data)
-        self.parsed_success = True
 
     @staticmethod
     def __get_jobs(data):
@@ -308,7 +303,6 @@ class GitLabConfig(GenericConfigObject):
             self.parsed_content = {}
         else:
             self.parsed_content = self.__get_jobs(data)
-        self.parsed_success = True
 
     @staticmethod
     def __flatten_nested_string_lists(data):
@@ -392,7 +386,6 @@ class AnsibleShellConfig(GenericConfigObject):
 
         if isinstance(data, list):
             self.parsed_content = self.__get_shell_tasks(data, "root")
-        self.parsed_success = True
 
 
 def select_yaml_schema(data, filename):
