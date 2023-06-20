@@ -1,0 +1,6 @@
+- id: yaml-shellcheck
+  name: yaml-shellcheck v1.1.0
+  description: Wrapper script to run shellcheck on YAML CI-config files
+  language: python
+  entry: yaml_shellcheck
+  types: [text]

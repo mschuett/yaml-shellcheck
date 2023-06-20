@@ -415,7 +415,7 @@ def cleanup_files(args):
         logger.debug("removed working dir %s", args.outdir)
 
 
-if __name__ == "__main__":
+def main():
     args = setup()
 
     filenames = []
@@ -431,3 +431,7 @@ if __name__ == "__main__":
     cleanup_files(args)
     # exit with shellcheck exit code
     sys.exit(check_proc_result.returncode if check_proc_result else 0)
+
+
+if __name__ == "__main__":
+    main()

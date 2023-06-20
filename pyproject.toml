@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "yaml-shellcheck"
+version = "1.1.0"
+description = "Wrapper script to run shellcheck on YAML CI-config files"
+authors = ["Martin Schütte <info@mschuette.name>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+"ruamel.yaml" = "0.16.0"
+
+[tool.poetry.scripts]
+yaml_shellcheck = "yaml_shellcheck:main"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
