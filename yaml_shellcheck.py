@@ -113,7 +113,7 @@ def get_github_scripts(data):
     """GitHub: from the docs the search pattern should be `jobs.<job_id>.steps[*].run`
     https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
-    as a simple first step we match on `jobs.**.run`
+    as a simple first step we match on `jobs.**.run`, excluding `jobs.**.defaults.run`
     """
 
     def get_runs(data, path):
@@ -134,6 +134,9 @@ def get_github_scripts(data):
                 results[f"{path}/run"] = script
 
             for key in data:
+                if key == "defaults":
+                    # GitHub Actions has jobs.<job_id>.defaults.run which we don't want to match on.
+                    continue
                 results.update(get_runs(data[key], f"{path}/{key}"))
         elif isinstance(data, list):
             for i, item in enumerate(data):
