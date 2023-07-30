@@ -277,7 +277,7 @@ def get_ansible_scripts(data):
                     # we cannot evaluate Jinja templates
                     # at least try to be useful and replace every expression with a variable
                     # we do not handle Jinja statements like loops of if/then/else
-                    script = re.sub(r"{{.*}}", "$JINJA_EXPRESSION", script)
+                    script = re.sub(r"{{.*?}}", "$JINJA_EXPRESSION", script)
 
                     # try to add shebang line from 'executable' if it looks like a shell
                     executable = task.get("args", {}).get("executable", None)
