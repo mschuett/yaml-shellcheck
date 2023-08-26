@@ -94,7 +94,7 @@ def get_bitbucket_scripts(data):
             isinstance(data, str)
             or isinstance(data, int)
             or isinstance(data, float)
-            or isinstance(data, None)
+            or data is None
         ):
             pass
         return results
@@ -145,7 +145,7 @@ def get_github_scripts(data):
             isinstance(data, str)
             or isinstance(data, int)
             or isinstance(data, float)
-            or isinstance(data, None)
+            or data is None
         ):
             pass
         return results
