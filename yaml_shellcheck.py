@@ -251,6 +251,9 @@ def get_gitlab_scripts(data):
         for section in ["script", "before_script", "after_script"]:
             if section in data[jobkey]:
                 script = data[jobkey][section]
+                script = flatten_nested_string_lists(script)
+                # replace inputs interpolation with dummy variable
+                script = re.sub(r'\$\[\[\s*(inputs\.[^\s>]*)\s*]]', r'$INPUT_PARAMETER', script)
                 result[f"{jobkey}/{section}"] = flatten_nested_string_lists(script)
     return result
 
