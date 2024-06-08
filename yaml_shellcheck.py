@@ -253,7 +253,7 @@ def get_gitlab_scripts(data):
                 script = data[jobkey][section]
                 script = flatten_nested_string_lists(script)
                 # replace inputs interpolation with dummy variable
-                script = re.sub(r'\$\[\[\s*(inputs\.[^\s>]*)\s*]]', r'$INPUT_PARAMETER', script)
+                script = re.sub(r'\$\[\[\s*(inputs\.[^]]*)\s*]]', r'$INPUT_PARAMETER', script)
                 result[f"{jobkey}/{section}"] = flatten_nested_string_lists(script)
     return result
 

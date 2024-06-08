@@ -12,4 +12,4 @@ $[[ inputs.dest_env ]]-trigger:
   image: $CI_REGISTRY/pipeline-components/helperimages:alpine-utils
   script:
     - |
-      curl --location $[[ inputs.target ]]
+      curl --location $[[ inputs.target | expand_vars | truncate(5,8) ]]
