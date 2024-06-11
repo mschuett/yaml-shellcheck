@@ -251,6 +251,9 @@ def get_gitlab_scripts(data):
         for section in ["script", "before_script", "after_script"]:
             if section in data[jobkey]:
                 script = data[jobkey][section]
+                script = flatten_nested_string_lists(script)
+                # replace inputs interpolation with dummy variable
+                script = re.sub(r'\$\[\[\s*(inputs\.[^]]*)\s*]]', r'$INPUT_PARAMETER', script)
                 result[f"{jobkey}/{section}"] = flatten_nested_string_lists(script)
     return result
 
@@ -308,30 +311,46 @@ def get_ansible_scripts(data):
     return result
 
 
-def select_yaml_schema(data, filename):
+def select_yaml_schema(documents, filename):
     # try to determine CI system and file format,
-    # returns the right get function
+    # returns the right get function, and the document index to read
+
+    if len(documents) < 1:
+        raise ValueError(f"read {filename}, no valid YAML document, this should never happen")
+
+    # special case first: GitLab 17 adds an optional spec-document before the main content document
+    # https://docs.gitlab.com/ee/ci/yaml/inputs.html
+    if len(documents) == 2 and "spec" in documents[0]:
+        logging.info(f"read {filename} as GitLab CI config with spec header section ...")
+        return get_gitlab_scripts, 1
+
+    # in previous versions we ignored additional documents in YAML files
+    if len(documents) > 1:
+        logging.warning(f"{filename} contains multiple YAML, only the first will be checked")
+
+    # else: documents == 1; all other tools and cases only read a single YAML document
+    data = documents[0]
     if isinstance(data, dict) and "pipelines" in data:
         logging.info(f"read {filename} as Bitbucket Pipelines config...")
-        return get_bitbucket_scripts
+        return get_bitbucket_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
-        return get_github_scripts
+        return get_github_scripts, 0
     elif isinstance(data, dict) and "version" in data and "jobs" in data:
         logging.info(f"read {filename} as CircleCI config...")
-        return get_circleci_scripts
+        return get_circleci_scripts, 0
     elif (
         isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data
     ):
         logging.info(f"read {filename} as Drone CI config...")
-        return get_drone_scripts
+        return get_drone_scripts, 0
     elif isinstance(data, list):
         logging.info(f"read {filename} as Ansible file...")
-        return get_ansible_scripts
+        return get_ansible_scripts, 0
     elif isinstance(data, dict):
         # TODO: GitLab is the de facto default value, we should add more checks here
         logging.info(f"read {filename} as GitLab CI config...")
-        return get_gitlab_scripts
+        return get_gitlab_scripts, 0
     else:
         raise ValueError(f"read {filename}, cannot determine CI tool from YAML structure")
 
@@ -365,9 +384,9 @@ def read_yaml_file(filename):
     yaml.register_class(GitLabReference)
 
     with open(filename, "r") as f:
-        data = yaml.load(f)
-    get_script_snippets = select_yaml_schema(data, filename)
-    return get_script_snippets(data)
+        yaml_documents = list(yaml.load_all(f))
+    get_script_snippets, document_index = select_yaml_schema(yaml_documents, filename)
+    return get_script_snippets(yaml_documents[document_index])
 
 
 def write_tmp_files(args, data):

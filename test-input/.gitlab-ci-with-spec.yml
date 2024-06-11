@@ -1,0 +1,15 @@
+spec:
+  inputs:
+    target:
+      type: string
+      description: The Target URL
+    dest_env:
+      type: string
+      description: The Target environment
+---
+$[[ inputs.dest_env ]]-trigger:
+  stage: .post
+  image: $CI_REGISTRY/pipeline-components/helperimages:alpine-utils
+  script:
+    - |
+      curl --location $[[ inputs.target | expand_vars | truncate(5,8) ]]
