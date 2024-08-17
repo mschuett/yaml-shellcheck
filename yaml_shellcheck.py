@@ -185,7 +185,9 @@ def get_circleci_scripts(data):
                     if "shell" in run:
                         shell = run["shell"]
                 else:
-                    pass  # could be a directive like `save_cache`
+                    # this step could be a directive like `save_cache`
+                    logging.info("job %s, step %d: no 'command' attribute", jobkey, step_num)
+                    script = ""
             elif isinstance(run, str):
                 script = run
             elif isinstance(run, list):
