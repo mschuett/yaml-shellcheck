@@ -81,11 +81,13 @@ Handling Bitbucket files is very simple. A file with a `pipelines` object
 is read as a Bitbucket Pipeline file, and every `script` attribute inside
 is considered a shell script.
 
-### GitHub Actions
+### GitHub Actions & Forgejo Actions
 
 GitHub Actions are similar to Bitbucket. A file with a `jobs` object
 is read as a GitHub Actions file, and every `run` attribute inside
 is considered a shell script.
+
+As far as I can tell [Forgejo Actions](https://forgejo.org/docs/latest/user/actions/) (as used e.g. by https://codeberg.org/) intentionally use the same structure as GitHub Actions, so these are covered here as well.
 
 * `shell` attributes are not supported  
 this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line
