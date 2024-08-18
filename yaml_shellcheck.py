@@ -119,12 +119,12 @@ def get_github_scripts(data):
     def get_runs(data, path):
         results = {}
         if isinstance(data, dict):
-            if "run" in data:
+            if "run" in data and isinstance(data["run"], str):
                 script = data["run"]
                 if not isinstance(script, str):
                     raise ValueError(
                         "unexpected format of 'run' element, expected string and found "
-                        + type(script)
+                        + str(type(script))
                     )
 
                 # GitHub Actions uses '${{ foo }}' for context expressions,

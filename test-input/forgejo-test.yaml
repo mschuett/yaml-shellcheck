@@ -1,0 +1,108 @@
+# from https://code.forgejo.org/forgejo/end-to-end/src/branch/main/actions/example-expression/.forgejo/workflows/test.yml#
+on: [push]
+
+env:
+  KEY1: value1
+  KEY2: value2
+
+jobs:
+  test:
+    runs-on: docker
+    steps:
+
+      - name: environment
+        run: |
+          set -x
+          test "KEY1=${{ env.KEY1 }}" = "KEY1=value1"
+          test "KEY2=$KEY2" = "KEY2=value2"          
+
+      - name: if skip one
+        run: false
+        if: env.KEY1 == 'nogood'
+      - name: if skip two
+        run: false
+        if: ${{ env.KEY1 == 'nogood' }}
+      - name: if does not skip
+        id: conditional
+        run: echo 'check=good' >> $GITHUB_OUTPUT
+        if: env.KEY1 == 'value1'
+      - name: verify if did not skip
+        run: test ${{ steps.conditional.outputs.check }} = good
+
+      - name: logical
+        run: |
+          set -x
+          test "${{ fromJSON('["one","two"]')[0] }}" = "one"
+          test "${{ !false }}" = "true"
+          test "${{ !( 1 > 2 ) }}" = "true"
+          test "${{ 1 >= 1 }}" = "true"
+          test "${{ 1 <= 1 }}" = "true"
+          test "${{ 1 < 2 }}" = "true"
+          test "${{ 1 == 1 }}" = "true"
+          test "${{ 1 != 2 }}" = "true"
+          test "${{ true && true }}" = "true"
+          test "${{ true || false }}" = "true"          
+
+      - name: literals
+        run: |
+          set -x
+          test "${{ 0.9 }}" = "0.9"
+          test "${{ env.NULL == null }}" = "true"
+          test "${{ true == true }}" = "true"
+          test "${{ true == false }}" = "false"
+          test "${{ 'something' }}" = "something"
+          test "${{ 'inside''quote' }}" = "inside'quote"
+          test "${{ 'something' == 'SOMETHING' }}" = "true"          
+
+      - name: contains
+        run: |
+          set -x
+          test "${{ contains('number 0.9', 0.9) }}" = "true"
+          test "${{ contains('zeroonetwo', 'one') }}" = "true"
+          test "${{ contains('zeroonetwo', 'notfound') }}" = "false"
+          test "${{ contains(fromJSON('["one","two"]'), 'one') }}" = "true"
+          test "${{ contains(fromJSON('["one","two"]'), 'notfound') }}" = "false"          
+
+      - name: startsWith
+        run: |
+          set -x
+          test "${{ startsWith('0.9 number', 0.9) }}" = "true"
+          test "${{ startsWith('some number', 'SOME') }}" = "true"
+          test "${{ startsWith('number', '0.9') }}" = "false"          
+
+      - name: endsWith
+        run: |
+          set -x
+          test "${{ endsWith('number 0.9', 0.9) }}" = "true"
+          test "${{ endsWith('number some', 'SOME') }}" = "true"
+          test "${{ endsWith('number', '0.9') }}" = "false"          
+
+      - name: format
+        run: |
+          set -x
+          test "${{ format('{0} and {1}', 'A', 'B') }}" = "A and B"
+          test "${{ format('{{ and }}', 'A', 'B') }}" = "{ and }"          
+
+      - name: join
+        run: |
+          set -x
+          test "${{ join(fromJSON('["one","two"]')) }}" = "one,two"
+          test "${{ join(fromJSON('["one","two"]'), '+') }}" = "one+two"          
+
+      - name: toJSON
+        run: |
+          set -x
+          test "${{ toJSON(0.9) }}" = "0.9"          
+
+      - name: fromJSON
+        run: |
+          set -x
+          test "${{ fromJSON('["one","two"]')[0] }}" = 'one'          
+
+      # As of act v1.13.0 this fails for real (before it pretended to work but did not)
+      # - name: hashFiles
+      #   run: |
+      #     set -x
+      #     hash="bd52020371c038c4ad38a8d2df05dfa1a220d40fbe1ae83b63d6010cb527e531"
+      #     test "${{ hashFiles('actions/example-expression/.forgejo/fileone.txt') }}" = $hash
+      #     test "${{ hashFiles('actions/example-expression/.forgejo/fileone.*') }}" = $hash
