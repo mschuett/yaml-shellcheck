@@ -83,11 +83,19 @@ is considered a shell script.
 
 ### GitHub Actions & Forgejo Actions
 
-GitHub Actions are similar to Bitbucket. A file with a `jobs` object
-is read as a GitHub Actions file, and every `run` attribute inside
-is considered a shell script.
+GitHub has Actions (reusable components) and Workflows (the real CI config
+that may run scripts and/or Actions). This tool tries to handle both
+file types in the same function.
 
-As far as I can tell [Forgejo Actions](https://forgejo.org/docs/latest/user/actions/) (as used e.g. by https://codeberg.org/) intentionally use the same structure as GitHub Actions, so these are covered here as well.
+GitHub Workflows are similar to Bitbucket. A file with a `on` attribute
+and a `jobs` object is read as a GitHub file, and every `run` attribute
+inside is considered a shell script.
+
+Alternatively a file with an `inputs` and a `runs` object is read as a GitHub Actions file.
+
+As far as I can tell [Forgejo Actions](https://forgejo.org/docs/latest/user/actions/)
+(as used e.g. by https://codeberg.org/) intentionally use the same structure as
+GitHub Actions/Workflows, so these are covered here as well.
 
 * `shell` attributes are not supported  
 this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line

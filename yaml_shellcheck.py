@@ -110,10 +110,13 @@ def get_bitbucket_scripts(data):
 
 
 def get_github_scripts(data):
-    """GitHub: from the docs the search pattern should be `jobs.<job_id>.steps[*].run`
+    """GitHub Workflows: from the docs the search pattern should be `jobs.<job_id>.steps[*].run`
     https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
     as a simple first step we match on `jobs.**.run`, excluding `jobs.**.defaults.run`
+
+    and,
+    GitHub Actions: match on runs.steps[*].run
     """
 
     def get_runs(data, path):
@@ -151,9 +154,12 @@ def get_github_scripts(data):
         return results
 
     result = {}
-    if "jobs" not in data:
+    if "jobs" in data:  # workflow
+        result = get_runs(data["jobs"], "jobs")
+    elif "runs" in data:  # actions
+        result = get_runs(data["runs"], "runs")
+    else:  # neither
         return result
-    result = get_runs(data["jobs"], "jobs")
     logging.debug("got scripts: %s", result)
     for key in result:
         logging.debug("%s: %s", key, result[key])
@@ -336,6 +342,9 @@ def select_yaml_schema(documents, filename):
         logging.info(f"read {filename} as Bitbucket Pipelines config...")
         return get_bitbucket_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
+        logging.info(f"read {filename} as GitHub Workflows config...")
+        return get_github_scripts, 0
+    elif isinstance(data, dict) and "inputs" in data and "runs" in data:
         logging.info(f"read {filename} as GitHub Actions config...")
         return get_github_scripts, 0
     elif isinstance(data, dict) and "version" in data and "jobs" in data:
