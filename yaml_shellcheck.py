@@ -15,6 +15,7 @@ import re
 import sys
 
 from ruamel.yaml import YAML
+from ruamel.yaml.nodes import ScalarNode
 
 global logger
 
@@ -373,24 +374,27 @@ def read_yaml_file(filename):
     class GitLabReference(object):
         yaml_tag = "!reference"
 
-        def __init__(self, elements):
+        def __init__(self, elements: list[str]):
             self.elements = elements
 
         def __str__(self):
-            return f"# {self.yaml_tag}{','.join(self.elements)}"
+            return f"# {self.yaml_tag}[{', '.join(self.elements)}]"
 
         @classmethod
         def to_yaml(cls, representer, node):
             return representer.represent_scalar(
-                cls.yaml_tag, f"[{', '.join(self.elements)}]"
+                cls.yaml_tag, f"[{', '.join(node.value)}]"
             )
 
         @classmethod
         def from_yaml(cls, constructor, node):
-            if not all(isinstance(element, str) for element in node.value):
-                raise ValueError(f"Tag {cls.yaml_tag} only support a sequence of strings")
-
-            return str(cls(node.value))
+            if not all(isinstance(element, ScalarNode) for element in node.value):
+                raise ValueError(
+                    f"Tag {cls.yaml_tag} only support a sequence of ScalarNode "
+                    f"(should all be strings), but found "
+                    f"{[type(element) for element in node.value]}")
+            # we instantiate a GitLabReference with cls, but return its string representation
+            return str(cls([element.value for element in node.value]))
 
     yaml = YAML(typ="safe")
     yaml.register_class(GitLabReference)
