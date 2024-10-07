@@ -3,7 +3,7 @@
 # very simple shell loop, I should probably rewrite this in pytest...
 
 GLOBIGNORE=".."
-for f in test-input/*.y*ml; do
+for f in test-input/.*.y*ml test-input/*.y*ml; do
   echo "== test file $f"
   if [ ! -f "$f.test_expected" ]; then
     echo "ERROR: missing test spec file $f.test_expected"
