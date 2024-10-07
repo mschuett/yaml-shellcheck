@@ -6,11 +6,18 @@ stages:
 variables:
   FOOBAR: quux
 
+.vars:
+  variables:
+    URL: "http://my-url.internal"
+    IMPORTANT_VAR: "the details"
+
 .setup:
   script:
     - echo creating environment
 
 html:
+  variables:
+    MY_VAR: !reference [.vars, variables, IMPORTANT_VAR]
   stage: documentation
   script:
     - cd doc

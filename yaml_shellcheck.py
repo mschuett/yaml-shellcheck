@@ -373,23 +373,24 @@ def read_yaml_file(filename):
     class GitLabReference(object):
         yaml_tag = "!reference"
 
-        def __init__(self, obj, attr):
-            self.obj = obj
-            self.attr = attr
+        def __init__(self, elements):
+            self.elements = elements
 
         def __str__(self):
-            return f"# {self.yaml_tag}[{self.obj}, {self.attr}]"
+            return f"# {self.yaml_tag}{','.join(self.elements)}"
 
         @classmethod
         def to_yaml(cls, representer, node):
             return representer.represent_scalar(
-                cls.yaml_tag, "[{.obj}, {.attr}]".format(node, node)
+                cls.yaml_tag, f"[{', '.join(self.elements)}]"
             )
 
         @classmethod
         def from_yaml(cls, constructor, node):
-            assert len(node.value) == 2
-            return str(cls(node.value[0].value, node.value[1].value))
+            if not all(isinstance(element, str) for element in node.value):
+                raise ValueError(f"Tag {cls.yaml_tag} only support a sequence of strings")
+
+            return str(cls(node.value))
 
     yaml = YAML(typ="safe")
     yaml.register_class(GitLabReference)
