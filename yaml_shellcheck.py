@@ -399,11 +399,11 @@ def read_yaml_file(filename):
     class AnsibleVault(object):
         yaml_tag = "!vault"
 
-        def __init__(self, elements: list[str]):
-            self.elements = elements
+        def __init__(self, content: str):
+            self.content = content
 
         def __str__(self):
-            return f"# {self.yaml_tag}[{', '.join(self.elements)}]"
+            return f"# {self.yaml_tag} {self.content}"
 
         @classmethod
         def to_yaml(cls, representer, node):
@@ -413,11 +413,10 @@ def read_yaml_file(filename):
 
         @classmethod
         def from_yaml(cls, constructor, node):
-            if not isinstance(node.value, ScalarNode):
+            if not isinstance(node.value, str):
                 raise ValueError(
-                    f"Tag {cls.yaml_tag} only supports a ScalarNode "
-                    f"(should be a string), but found "
-                    f"{type(node.value)}")
+                    f"Tag {cls.yaml_tag} only supports a string "
+                    f", but found {type(node.value)}")
             # we instantiate a GitLabReference with cls, but return its string representation
             return str(cls(node.value))
 
