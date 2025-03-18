@@ -403,7 +403,7 @@ def read_yaml_file(filename):
             self.content = content
 
         def __str__(self):
-            return f"# {self.yaml_tag} {self.content}"
+            return f"# {self.yaml_tag} {self.content.splitlines()[0]} ..."
 
         @classmethod
         def to_yaml(cls, representer, node):
@@ -417,7 +417,7 @@ def read_yaml_file(filename):
                 raise ValueError(
                     f"Tag {cls.yaml_tag} only supports a string "
                     f", but found {type(node.value)}")
-            # we instantiate a GitLabReference with cls, but return its string representation
+            # we instantiate a AnsibleVault with cls, but return its string representation
             return str(cls(node.value))
 
     yaml = YAML(typ="safe")
