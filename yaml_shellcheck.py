@@ -396,8 +396,33 @@ def read_yaml_file(filename):
             # we instantiate a GitLabReference with cls, but return its string representation
             return str(cls([element.value for element in node.value]))
 
+    class AnsibleVault(object):
+        yaml_tag = "!vault"
+
+        def __init__(self, content: str):
+            self.content = content
+
+        def __str__(self):
+            return f"# {self.yaml_tag} {self.content.splitlines()[0]} ..."
+
+        @classmethod
+        def to_yaml(cls, representer, node):
+            return representer.represent_scalar(
+                cls.yaml_tag, f"{node.value}"
+            )
+
+        @classmethod
+        def from_yaml(cls, constructor, node):
+            if not isinstance(node.value, str):
+                raise ValueError(
+                    f"Tag {cls.yaml_tag} only supports a string "
+                    f", but found {type(node.value)}")
+            # we instantiate a AnsibleVault with cls, but return its string representation
+            return str(cls(node.value))
+
     yaml = YAML(typ="safe")
     yaml.register_class(GitLabReference)
+    yaml.register_class(AnsibleVault)
 
     with open(filename, "r") as f:
         yaml_documents = list(yaml.load_all(f))
