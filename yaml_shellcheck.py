@@ -18,7 +18,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.nodes import ScalarNode
 
 global logger
-
+logger = logging.getLogger(__name__)
 
 def setup():
     global logger
@@ -69,6 +69,57 @@ def setup():
         logger.debug("created working dir: %s", args.outdir)
     return args
 
+variable_ind = 1
+def strip_templates(command: str) -> str:
+    global variable_ind
+    
+    iter = re.compile(r"{{[^{}]*}}").findall(command)
+    for match in iter:
+        quote = '"'
+        if '{{.' in match:
+            quote = ''
+        command = command.replace(match, quote + '${' + str(variable_ind) + '}' + quote)
+        variable_ind = variable_ind + 1
+    return command
+
+def get_taskfile_scripts(data):
+    global variable_ind
+    """Taskfile task runner / build tool files have a clearly defined schema: https://taskfile.dev/reference/schema/
+    """
+    logging.debug("get_taskfile_scripts()")
+    def get_scripts(data, path):
+        results = {}
+        if isinstance(data, dict):
+            if "cmds" in data or 'cmd' in data:
+                script = data["cmds"] or data['cmd']
+                if isinstance(script, str):
+                    results[f"{path}/script"] = strip_templates(script)
+                elif isinstance(script, list):
+                    results[f"{path}/script"] = "\n".join([strip_templates(f) for f in script])
+            for key in data:
+                results.update(get_scripts(data[key], f"{path}/{key}"))
+        elif isinstance(data, list):
+            # Only treat a list as a cmd if it's in root level of task
+            if path.count('/') > 1:
+                return results
+            results[f"{path}/script"] = "\n".join([f for i, f in enumerate(data) if isinstance(f, str)])
+        elif (
+            isinstance(data, str)
+            or isinstance(data, int)
+            or isinstance(data, float)
+            or data is None
+        ):
+            pass
+        return results
+
+    result = {}
+    if "tasks" not in data:
+        return result
+    result = get_scripts(data["tasks"], "tasks")
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
 
 def get_bitbucket_scripts(data):
     """Bitbucket pipeline files are deeply nested, and they do not
@@ -342,6 +393,9 @@ def select_yaml_schema(documents, filename):
     if isinstance(data, dict) and "pipelines" in data:
         logging.info(f"read {filename} as Bitbucket Pipelines config...")
         return get_bitbucket_scripts, 0
+    if isinstance(data, dict) and "version" in data and "tasks" in data:
+        logging.info(f"read {filename} as Task Build File...")
+        return get_taskfile_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Workflows config...")
         return get_github_scripts, 0
@@ -448,7 +502,7 @@ def write_tmp_files(args, data):
         for jobkey in data[filename]:
             scriptfilename = subdir / jobkey
             scriptfilename.parent.mkdir(exist_ok=True, parents=True)
-            with open(scriptfilename, "w") as f:
+            with open(scriptfilename, "w", newline='\n') as f:
                 if not data[filename][jobkey].startswith("#!"):
                     f.write(f"{args.shell}\n")
                 f.write(data[filename][jobkey])
@@ -482,9 +536,7 @@ def cleanup_files(args):
         logger.debug("removed working dir %s", args.outdir)
 
 
-def main():
-    args = setup()
-
+def main(args):
     filenames = []
     for filename in args.files:
         try:
@@ -496,9 +548,9 @@ def main():
             logger.error("%s", e)
     check_proc_result = run_shellcheck(args, filenames)
     cleanup_files(args)
-    # exit with shellcheck exit code
-    sys.exit(check_proc_result.returncode if check_proc_result else 0)
+    return check_proc_result.returncode if check_proc_result else 0
 
 
 if __name__ == "__main__":
-    main()
+    # exit with shellcheck exit code
+    sys.exit(main(setup()))
