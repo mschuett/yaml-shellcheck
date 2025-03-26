@@ -137,6 +137,7 @@ So far it recognizes three kinds of list elements:
 
 Task support is limited also. This tool reads the shell from the cmd portion of the YAML and ignores any go templates.
 It will convert Task variables to shell variables, so in case of standard shell code it will give you the errors out of it.
+See https://taskfile.dev/ for more information on this build tool.
 
 ### Common
 
