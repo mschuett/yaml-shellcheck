@@ -75,10 +75,11 @@ def strip_templates(command: str) -> str:
     
     iter = re.compile(r"{{[^{}]*}}").findall(command)
     for match in iter:
-        quote = '"'
-        if '{{.' in match:
-            quote = ''
-        command = command.replace(match, quote + '${' + str(variable_ind) + '}' + quote)
+        # If not the simple case return an empty line, we don't validate this line
+        # as it can be anything of go template syntax which then gets resolved to shell
+        if '{{.' not in match:
+            return ''
+        command = command.replace(match, '${' + str(variable_ind) + '}')
         variable_ind = variable_ind + 1
     return command
 

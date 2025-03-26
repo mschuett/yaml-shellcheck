@@ -25,13 +25,19 @@ class Capturing(list):
         sys.stdout = self._stdout
         sys.stderr = self._stderr
 
-    def all(self) -> list[str]:
+    def flush(self):
         self._temp.flush()
         self._temp.seek(0)
         lines = []
         for x in self._temp:
             lines.append(x)
-        return [re.findall(self.regex, x)[0] for x in lines if re.match(self.regex, x) != None]
+        self._all = lines
+
+    def all(self) -> list[str]:
+        return self._all
+
+    def shellcheck_errs(self) -> list[str]:
+        return [re.findall(self.regex, x)[0] for x in self._all if re.match(self.regex, x) != None]
 
 class Config():
     files: list[str] = []
@@ -54,4 +60,6 @@ def test(test_data):
 
     with Capturing() as cap:
         main(args)
-        assert expected == cap.all()
+        cap.flush()
+        ex = cap.shellcheck_errs()
+        assert expected == ex
