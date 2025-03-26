@@ -13,7 +13,7 @@ class Capturing(list):
     regex = re.compile('.*(SC[0-9]{1,99}).*')
 
     def __enter__(self):
-        self._temp = tempfile.NamedTemporaryFile('w+', delete_on_close=True)
+        self._temp = tempfile.NamedTemporaryFile('w+')
         self._stdout = sys.stdout
         self._stderr = sys.stderr
         sys.stdout = self._temp
@@ -46,10 +46,10 @@ class Config():
     command: str = 'shellcheck'
     keep: bool = False
 
-def test_data():
+def get_test_data():
     return glob.glob('test-input/*.y*ml', include_hidden=True)
 
-@pytest.mark.parametrize("test_data", test_data())
+@pytest.mark.parametrize("test_data", get_test_data())
 def test(test_data):
     args = Config()
     args.files = [test_data]
