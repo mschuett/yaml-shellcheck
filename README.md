@@ -67,7 +67,7 @@ lint_yaml_shellcheck:
     name: quay.io/mschuette/yaml-shellcheck:latest
     entrypoint: [""]
   script:
-    - find . -name \*.yaml -or -name \*.yml | xargs python3 yaml_shellcheck.py
+    - find . -name \*.yaml -or -name \*.yml | xargs python3 /app/yaml_shellcheck.py
 ```
 
 ## File Formats
