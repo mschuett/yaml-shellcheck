@@ -70,24 +70,24 @@ def setup():
     return args
 
 variable_ind = 1
-def strip_templates(command: str) -> str:
-    global variable_ind
-    
-    iter = re.compile(r"{{[^{}]*}}").findall(command)
-    for match in iter:
-        # If not the simple case return an empty line, we don't validate this line
-        # as it can be anything of go template syntax which then gets resolved to shell
-        if '{{.' not in match:
-            return ''
-        command = command.replace(match, '${' + str(variable_ind) + '}')
-        variable_ind = variable_ind + 1
-    return command
-
 def get_taskfile_scripts(data):
     global variable_ind
     """Taskfile task runner / build tool files have a clearly defined schema: https://taskfile.dev/reference/schema/
     """
     logging.debug("get_taskfile_scripts()")
+    def strip_templates(command: str) -> str:
+        global variable_ind
+
+        iter = re.compile(r"{{[^{}]*}}").findall(command)
+        for match in iter:
+            # If not the simple case return an empty line, we don't validate this line
+            # as it can be anything of go template syntax which then gets resolved to shell
+            if '{{.' not in match:
+                return ''
+            command = command.replace(match, '${' + str(variable_ind) + '}')
+            variable_ind = variable_ind + 1
+        return command
+
     def get_scripts(data, path):
         results = {}
         if isinstance(data, dict):
