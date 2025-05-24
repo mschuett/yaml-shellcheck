@@ -47,7 +47,7 @@ class Config():
     keep: bool = False
 
 def get_test_data():
-    return glob.glob('test-input/*.y*ml', include_hidden=True)
+    return glob.glob('test-input/*.y*ml')
 
 @pytest.mark.parametrize("test_data", get_test_data())
 def test(test_data):
