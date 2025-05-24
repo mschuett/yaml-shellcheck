@@ -1,6 +1,8 @@
 # run a very simple test against our test-input/ files
 
 name: Check Test Inputs
+permissions:
+  contents: read
 
 on:
   push:
