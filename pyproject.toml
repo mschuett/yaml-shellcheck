@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-"ruamel.yaml" = "0.18.12"
+"ruamel.yaml" = "0.18.14"
 
 [tool.poetry.scripts]
 yaml_shellcheck = "yaml_shellcheck:main"
