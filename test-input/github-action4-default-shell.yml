@@ -1,0 +1,32 @@
+# test case for GitHub Actions default shell detection
+#
+
+name: Test default Shell detection in workflow
+permissions:
+  contents: read
+on:
+  push:
+    branches: [ "main" ]
+defaults:
+  run:
+    shell: bash
+inputs:
+  who-to-greet:  # id of input
+    description: 'Who to greet'
+    required: true
+    default: 'World'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      # errors with default sh, no findings with 'shell: bash'
+      - run: |
+          if [[ "${{ inputs.who-to-greet }}" == World ]]; then
+            echo "Hello World!!!"
+          else
+            echo Hello "${{ inputs.who-to-greet }}".
+          fi

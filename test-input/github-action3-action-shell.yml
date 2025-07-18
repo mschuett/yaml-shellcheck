@@ -1,0 +1,20 @@
+# test case for GitHub Actions shell detection
+#
+name: 'Test Shell detection'
+description: 'Greet someone'
+inputs:
+  who-to-greet:  # id of input
+    description: 'Who to greet'
+    required: true
+    default: 'World'
+runs:
+  using: "composite"
+  steps:
+    # errors with default sh, no findings with 'shell: bash'
+    - run: |
+        if [[ "${{ inputs.who-to-greet }}" == World ]]; then
+          echo "Hello World!!!"
+        else
+          echo Hello "${{ inputs.who-to-greet }}".
+        fi
+      shell: bash

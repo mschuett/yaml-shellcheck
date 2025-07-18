@@ -97,8 +97,7 @@ As far as I can tell [Forgejo Actions](https://forgejo.org/docs/latest/user/acti
 (as used e.g. by https://codeberg.org/) intentionally use the same structure as
 GitHub Actions/Workflows, so these are covered here as well.
 
-* `shell` attributes are not supported  
-this is a todo, it should be simple enough to only check `sh` and `bash` scripts with right shebang line
+* `shell` attributes are supported
 * [expressions](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions) get replaced with a simple variable before running shellcheck
 
 ### Drone CI
@@ -111,7 +110,7 @@ and checked as a shell script.
 
 CircleCI has many options, but fortunately the nesting of its `jobs.*.steps.run` script elements is straightforward. All command lists are concatenated and checked as a shell script.
 
-* `shell` attributes are supported  
+* `shell` attributes are supported
 * [pipeline values and parameters](https://circleci.com/docs/2.0/pipeline-variables/) are ignored and replaced with placeholder shell variables
 
 ### GitLab CI Pipelines
