@@ -1,6 +1,8 @@
 # run a very simple test against our test-input/ files
 
 name: Check Test Inputs
+permissions:
+  contents: read
 
 on:
   push:
@@ -15,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
