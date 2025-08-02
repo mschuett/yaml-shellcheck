@@ -120,7 +120,7 @@ def get_github_scripts(data):
     GitHub Actions: match on runs.steps[*].run
     """
 
-    def get_runs(data, path):
+    def get_runs(data, path, workflow_default_shell=None):
         results = {}
         if isinstance(data, dict):
             if "run" in data and isinstance(data["run"], str):
@@ -135,16 +135,21 @@ def get_github_scripts(data):
                 # we try to be useful and replace these with a simple shell variable
                 script = re.sub(r"\${{.*}}", "$ACTION_EXPRESSION", script)
 
+                # try to detect and set a configured shell, from this job or from default
+                shell = data.get("shell", workflow_default_shell)
+                if shell:
+                    script = f"#!/bin/{shell}\n" + script
+
                 results[f"{path}/run"] = script
 
             for key in data:
                 if key == "defaults":
                     # GitHub Actions has jobs.<job_id>.defaults.run which we don't want to match on.
                     continue
-                results.update(get_runs(data[key], f"{path}/{key}"))
+                results.update(get_runs(data[key], f"{path}/{key}", workflow_default_shell))
         elif isinstance(data, list):
             for i, item in enumerate(data):
-                results.update(get_runs(item, f"{path}/{i}"))
+                results.update(get_runs(item, f"{path}/{i}", workflow_default_shell))
         elif (
             isinstance(data, str)
             or isinstance(data, int)
@@ -155,10 +160,15 @@ def get_github_scripts(data):
         return results
 
     result = {}
+    default_shell = None
+    if "defaults" in data and "run" in data["defaults"]:
+        default_shell = data["defaults"]["run"].get("shell", None)
+        logging.debug("found and set default shell %s", default_shell)
+
     if "jobs" in data:  # workflow
-        result = get_runs(data["jobs"], "jobs")
+        result = get_runs(data["jobs"], "jobs", default_shell)
     elif "runs" in data:  # actions
-        result = get_runs(data["runs"], "runs")
+        result = get_runs(data["runs"], "runs", default_shell)
     else:  # neither
         return result
     logging.debug("got scripts: %s", result)
