@@ -18,6 +18,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.nodes import ScalarNode
 
 global logger
+logger = logging.getLogger(__name__)
 
 def setup():
     global logger
@@ -61,7 +62,6 @@ def setup():
         level=logging.DEBUG if args.debug else logging.INFO,
         handlers=[console_handler],
     )
-    logger = logging.getLogger(__name__)
 
     if not args.outdir:
         args.outdir = tempfile.mkdtemp(prefix="py_yaml_shellcheck_")
@@ -546,9 +546,7 @@ def cleanup_files(args):
         logger.debug("removed working dir %s", args.outdir)
 
 
-def main():
-    args = setup()
-
+def main(args):
     filenames = []
     for filename in args.files:
         try:
@@ -560,9 +558,9 @@ def main():
             logger.error("%s", e)
     check_proc_result = run_shellcheck(args, filenames)
     cleanup_files(args)
-    # exit with shellcheck exit code
-    sys.exit(check_proc_result.returncode if check_proc_result else 0)
+    return check_proc_result.returncode if check_proc_result else 0
 
 
 if __name__ == "__main__":
-    main()
+    # exit with shellcheck exit code
+    sys.exit(main(setup()))
