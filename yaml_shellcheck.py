@@ -156,8 +156,8 @@ def get_bitbucket_scripts(data):
         return result
     result = get_scripts(data["pipelines"], "pipelines")
     logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    for key,value in result.items():
+        logging.debug("%s: %s", key, value)
     return result
 
 
@@ -223,8 +223,8 @@ def get_github_scripts(data):
     else:  # neither
         return result
     logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    for key,value in result.items():
+        logging.debug("%s: %s", key, value)
     return result
 
 
@@ -279,8 +279,8 @@ def get_circleci_scripts(data):
             result[f"{jobkey}/{step_num}"] = script
 
     logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    for key,value in result.items():
+        logging.debug("%s: %s", key, value)
     return result
 
 
@@ -296,8 +296,8 @@ def get_drone_scripts(data):
         section = item.get("name")
         result[f"{jobkey}/{section}"] = "\n".join(item.get("commands", []))
     logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    for key,value in result.items():
+        logging.debug("%s: %s", key, value)
     return result
 
 
@@ -355,7 +355,7 @@ def get_ansible_scripts(data):
                     # try to add shebang line from 'executable' if it looks like a shell
                     executable = task.get("args", {}).get("executable", None)
                     if executable and "sh" not in executable:
-                        logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
+                        logging.debug("unsupported shell %s, in %d/%s", executable, i, key)
                         # ignore this task
                         continue
                     elif executable:
@@ -374,8 +374,8 @@ def get_ansible_scripts(data):
         return result
 
     logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    for key,value in result.items():
+        logging.debug("%s: %s", key, value)
     return result
 
 
@@ -389,39 +389,39 @@ def select_yaml_schema(documents, filename):
     # special case first: GitLab 17 adds an optional spec-document before the main content document
     # https://docs.gitlab.com/ee/ci/yaml/inputs.html
     if len(documents) == 2 and "spec" in documents[0]:
-        logging.info(f"read {filename} as GitLab CI config with spec header section ...")
+        logging.info("read %s as GitLab CI config with spec header section ...", filename)
         return get_gitlab_scripts, 1
 
     # in previous versions we ignored additional documents in YAML files
     if len(documents) > 1:
-        logging.warning(f"{filename} contains multiple YAML, only the first will be checked")
+        logging.warning("%s contains multiple YAML, only the first will be checked", filename)
 
     # else: documents == 1; all other tools and cases only read a single YAML document
     data = documents[0]
     if isinstance(data, dict) and "pipelines" in data:
-        logging.info(f"read {filename} as Bitbucket Pipelines config...")
+        logging.info("read %s as Bitbucket Pipelines config...", filename)
         return get_bitbucket_scripts, 0
     if isinstance(data, dict) and "version" in data and "tasks" in data:
         logging.info(f"read {filename} as Task Build File...")
         return get_taskfile_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
-        logging.info(f"read {filename} as GitHub Workflows config...")
+        logging.info("read %s as GitHub Workflows config...", filename)
         return get_github_scripts, 0
     elif isinstance(data, dict) and "inputs" in data and "runs" in data:
-        logging.info(f"read {filename} as GitHub Actions config...")
+        logging.info("read %s as GitHub Actions config...", filename)
         return get_github_scripts, 0
     elif isinstance(data, dict) and "version" in data and "jobs" in data:
-        logging.info(f"read {filename} as CircleCI config...")
+        logging.info("read %s as CircleCI config...", filename)
         return get_circleci_scripts, 0
     elif isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data:
-        logging.info(f"read {filename} as Drone CI config...")
+        logging.info("read %s as Drone CI config...", filename)
         return get_drone_scripts, 0
     elif isinstance(data, list):
-        logging.info(f"read {filename} as Ansible file...")
+        logging.info("read %s as Ansible file...", filename)
         return get_ansible_scripts, 0
     elif isinstance(data, dict):
         # TODO: GitLab is the de facto default value, we should add more checks here
-        logging.info(f"read {filename} as GitLab CI config...")
+        logging.info("read %s as GitLab CI config...", filename)
         return get_gitlab_scripts, 0
     else:
         raise ValueError(f"read {filename}, cannot determine CI tool from YAML structure")
@@ -431,7 +431,7 @@ def read_yaml_file(filename):
     """read YAML and return dict with job name and shell scripts"""
     global logger
 
-    class GitLabReference(object):
+    class GitLabReference:
         yaml_tag = "!reference"
 
         def __init__(self, elements: list[str]):
@@ -445,6 +445,7 @@ def read_yaml_file(filename):
             return representer.represent_scalar(cls.yaml_tag, f"[{', '.join(node.value)}]")
 
         @classmethod
+        # pylint: disable=unused-argument
         def from_yaml(cls, constructor, node):
             if not all(isinstance(element, ScalarNode) for element in node.value):
                 raise ValueError(
@@ -455,7 +456,7 @@ def read_yaml_file(filename):
             # we instantiate a GitLabReference with cls, but return its string representation
             return str(cls([element.value for element in node.value]))
 
-    class AnsibleVault(object):
+    class AnsibleVault:
         yaml_tag = "!vault"
 
         def __init__(self, content: str):
@@ -469,6 +470,7 @@ def read_yaml_file(filename):
             return representer.represent_scalar(cls.yaml_tag, f"{node.value}")
 
         @classmethod
+        # pylint: disable=unused-argument
         def from_yaml(cls, constructor, node):
             if not isinstance(node.value, str):
                 raise ValueError(
@@ -518,7 +520,7 @@ def write_tmp_files(args, data):
 
 def run_shellcheck(args, filenames):
     if not filenames:
-        return
+        return None
     shellcheck_command = args.command.split() + filenames
     logger.debug("Starting subprocess: %s", shellcheck_command)
     proc = subprocess.run(
@@ -527,6 +529,7 @@ def run_shellcheck(args, filenames):
         stdout=sys.stdout,
         stderr=sys.stderr,
         cwd=args.outdir,
+        check=False,
     )
     logger.debug("subprocess result: %s", proc)
     return proc
