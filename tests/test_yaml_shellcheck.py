@@ -1,11 +1,12 @@
+import dataclasses
+import glob
 import pathlib
 import re
-import tempfile
-import pytest
-import glob
-
-from yaml_shellcheck import main
 import sys
+import tempfile
+
+import pytest
+from yaml_shellcheck import main
 
 class Capturing(list):
     regex = re.compile('.*(SC[0-9]{1,99}).*')
@@ -35,11 +36,14 @@ class Capturing(list):
         return self._all
 
     def shellcheck_errs(self) -> list[str]:
-        return [re.findall(self.regex, x)[0] for x in self._all if re.match(self.regex, x) != None]
+        return [re.findall(self.regex, x)[0]
+                for x in self._all
+                if re.match(self.regex, x) is not None]
 
-class Config():
-    files: list[str] = []
-    outdir: str
+@dataclasses.dataclass
+class Config:
+    files: list[str] = dataclasses.field(default_factory=lambda: [])
+    outdir: str = "."
     shell: str = '#!/bin/sh -e'
     command: str = 'shellcheck'
     keep: bool = False
@@ -54,7 +58,7 @@ def test(test_data):
     args.files = [test_data]
     args.outdir = tempfile.mkdtemp(prefix="py_yaml_shellcheck_")
     root: pathlib.Path = pathlib.Path(__file__).parent.parent.resolve()
-    with open(root / (test_data + '.test_expected')) as f:
+    with open(root / (test_data + '.test_expected'), encoding="UTF-8") as f:
         expected = [line.strip() for line in f]
 
     with Capturing() as cap:
