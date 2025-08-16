@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def setup():
     global logger
     parser = argparse.ArgumentParser(
-        description="run shellcheck on script blocks from .gitlab-ci.yml or bitbucket-pipelines.yml",
+        description="run shellcheck on script blocks from .gitlab-ci.yml or similar files",
     )
     parser.add_argument("files", nargs="+", help="YAML files to read")
     parser.add_argument(
@@ -261,11 +261,13 @@ def get_circleci_scripts(data):
             elif isinstance(run, list):
                 script = "\n".join(run)
             else:
-                raise ValueError(f"unexpected data type {type(run)} in job {jobkey} step {step_num}")
+                raise ValueError(
+                    f"unexpected data type {type(run)} in job {jobkey} step {step_num}"
+                )
 
             # CircleCI uses '<< foo >>' for context parameters,
             # we try to be useful and replace these with a simple shell variable
-            script = re.sub(r'<<\s*([^\s>]*)\s*>>', r'"$PARAMETER"', script)
+            script = re.sub(r"<<\s*([^\s>]*)\s*>>", r'"$PARAMETER"', script)
             # add shebang line if we saw a 'shell' attribute
             # TODO: we do not check for supported shell like we do in get_ansible_scripts
             # TODO: not sure what is the best handling of bash vs. sh as default here
@@ -310,9 +312,7 @@ def get_gitlab_scripts(data):
         elif isinstance(data, list):
             return "\n".join([flatten_nested_string_lists(item) for item in data])
         else:
-            raise ValueError(
-                f"unexpected data type {type(data)} in script section: {data}"
-            )
+            raise ValueError(f"unexpected data type {type(data)} in script section: {data}")
 
     result = {}
     for jobkey in data:
@@ -323,7 +323,7 @@ def get_gitlab_scripts(data):
                 script = data[jobkey][section]
                 script = flatten_nested_string_lists(script)
                 # replace inputs interpolation with dummy variable
-                script = re.sub(r'\$\[\[\s*(inputs\.[^]]*)\s*]]', r'$INPUT_PARAMETER', script)
+                script = re.sub(r"\$\[\[\s*(inputs\.[^]]*)\s*]]", r"$INPUT_PARAMETER", script)
                 result[f"{jobkey}/{section}"] = flatten_nested_string_lists(script)
     return result
 
@@ -355,9 +355,7 @@ def get_ansible_scripts(data):
                     # try to add shebang line from 'executable' if it looks like a shell
                     executable = task.get("args", {}).get("executable", None)
                     if executable and "sh" not in executable:
-                        logging.debug(
-                            f"unsupported shell %s, in %d/%s", executable, i, key
-                        )
+                        logging.debug(f"unsupported shell %s, in %d/%s", executable, i, key)
                         # ignore this task
                         continue
                     elif executable:
@@ -415,9 +413,7 @@ def select_yaml_schema(documents, filename):
     elif isinstance(data, dict) and "version" in data and "jobs" in data:
         logging.info(f"read {filename} as CircleCI config...")
         return get_circleci_scripts, 0
-    elif (
-        isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data
-    ):
+    elif isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data:
         logging.info(f"read {filename} as Drone CI config...")
         return get_drone_scripts, 0
     elif isinstance(data, list):
@@ -446,9 +442,7 @@ def read_yaml_file(filename):
 
         @classmethod
         def to_yaml(cls, representer, node):
-            return representer.represent_scalar(
-                cls.yaml_tag, f"[{', '.join(node.value)}]"
-            )
+            return representer.represent_scalar(cls.yaml_tag, f"[{', '.join(node.value)}]")
 
         @classmethod
         def from_yaml(cls, constructor, node):
@@ -456,7 +450,8 @@ def read_yaml_file(filename):
                 raise ValueError(
                     f"Tag {cls.yaml_tag} only support a sequence of ScalarNode "
                     f"(should all be strings), but found "
-                    f"{[type(element) for element in node.value]}")
+                    f"{[type(element) for element in node.value]}"
+                )
             # we instantiate a GitLabReference with cls, but return its string representation
             return str(cls([element.value for element in node.value]))
 
@@ -471,16 +466,15 @@ def read_yaml_file(filename):
 
         @classmethod
         def to_yaml(cls, representer, node):
-            return representer.represent_scalar(
-                cls.yaml_tag, f"{node.value}"
-            )
+            return representer.represent_scalar(cls.yaml_tag, f"{node.value}")
 
         @classmethod
         def from_yaml(cls, constructor, node):
             if not isinstance(node.value, str):
                 raise ValueError(
                     f"Tag {cls.yaml_tag} only supports a string "
-                    f", but found {type(node.value)}")
+                    f", but found {type(node.value)}"
+                )
             # we instantiate a AnsibleVault with cls, but return its string representation
             return str(cls(node.value))
 
@@ -500,7 +494,7 @@ def write_tmp_files(args, data):
     outdir.mkdir(exist_ok=True, parents=True)
     for filename in data:
         # workaround for absolute path in filename, insert path component to avoid collisions
-        if filename[0] == '/':
+        if filename[0] == "/":
             subdir = outdir / "__root__" / filename[1:]
         else:
             subdir = outdir / filename
