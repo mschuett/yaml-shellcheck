@@ -132,6 +132,12 @@ So far it recognizes three kinds of list elements:
 * [Blocks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_blocks.html) (`block`) for nested task lists.
 * Jinja expressions (`{{ ... }}`) are ignored and replaced with placeholder shell variables.
 
+### Task
+
+Task support is limited also. This tool reads the shell from the cmd portion of the YAML and ignores any go templates.
+It will convert Task variables to shell variables, so in case of standard shell code it will give you the errors out of it.
+See https://taskfile.dev/ for more information on this build tool.
+
 ### Common
 
 Files are read with a YAML parser, so all YAML anchors are resolved.
