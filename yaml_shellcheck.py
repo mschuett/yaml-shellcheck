@@ -19,7 +19,6 @@ from ruamel.yaml.nodes import ScalarNode
 
 global logger
 
-
 def setup():
     global logger
     parser = argparse.ArgumentParser(
@@ -69,6 +68,58 @@ def setup():
         logger.debug("created working dir: %s", args.outdir)
     return args
 
+taskfile_variable_ind = 1
+def get_taskfile_scripts(data):
+    global taskfile_variable_ind
+    """Taskfile task runner / build tool files have a clearly defined schema: https://taskfile.dev/reference/schema/
+    """
+    logging.debug("get_taskfile_scripts()")
+    def strip_templates(command: str) -> str:
+        global taskfile_variable_ind
+
+        iter = re.compile(r"{{[^{}]*}}").findall(command)
+        for match in iter:
+            # If not the simple case return an empty line, we don't validate this line
+            # as it can be anything of go template syntax which then gets resolved to shell
+            if '{{.' not in match:
+                return ''
+            command = command.replace(match, '${' + str(taskfile_variable_ind) + '}')
+            taskfile_variable_ind = taskfile_variable_ind + 1
+        return command
+
+    def get_scripts(data, path):
+        results = {}
+        if isinstance(data, dict):
+            if "cmds" in data or 'cmd' in data:
+                script = data["cmds"] or data['cmd']
+                if isinstance(script, str):
+                    results[f"{path}/script"] = strip_templates(script)
+                elif isinstance(script, list):
+                    results[f"{path}/script"] = "\n".join([strip_templates(f) for f in script])
+            for key in data:
+                results.update(get_scripts(data[key], f"{path}/{key}"))
+        elif isinstance(data, list):
+            # Only treat a list as a cmd if it's in root level of task
+            if path.count('/') > 1:
+                return results
+            results[f"{path}/script"] = "\n".join([f for i, f in enumerate(data) if isinstance(f, str)])
+        elif (
+            isinstance(data, str)
+            or isinstance(data, int)
+            or isinstance(data, float)
+            or data is None
+        ):
+            pass
+        return results
+
+    result = {}
+    if "tasks" not in data:
+        return result
+    result = get_scripts(data["tasks"], "tasks")
+    logging.debug("got scripts: %s", result)
+    for key in result:
+        logging.debug("%s: %s", key, result[key])
+    return result
 
 def get_bitbucket_scripts(data):
     """Bitbucket pipeline files are deeply nested, and they do not
@@ -352,6 +403,9 @@ def select_yaml_schema(documents, filename):
     if isinstance(data, dict) and "pipelines" in data:
         logging.info(f"read {filename} as Bitbucket Pipelines config...")
         return get_bitbucket_scripts, 0
+    if isinstance(data, dict) and "version" in data and "tasks" in data:
+        logging.info(f"read {filename} as Task Build File...")
+        return get_taskfile_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
         logging.info(f"read {filename} as GitHub Workflows config...")
         return get_github_scripts, 0
