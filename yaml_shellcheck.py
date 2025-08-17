@@ -68,10 +68,9 @@ def setup():
 
 taskfile_variable_ind = 1
 def get_taskfile_scripts(data):
-    global taskfile_variable_ind
     """Taskfile task runner / build tool files have a clearly defined schema: https://taskfile.dev/reference/schema/
     """
-    logging.debug("get_taskfile_scripts()")
+    global taskfile_variable_ind
     logger.debug("get_taskfile_scripts()")
     def strip_templates(command: str) -> str:
         global taskfile_variable_ind
@@ -103,9 +102,7 @@ def get_taskfile_scripts(data):
                 return results
             results[f"{path}/script"] = "\n".join([f for i, f in enumerate(data) if isinstance(f, str)])
         elif (
-            isinstance(data, str)
-            or isinstance(data, int)
-            or isinstance(data, float)
+            isinstance(data, (float, int, str))
             or data is None
         ):
             pass
@@ -142,9 +139,7 @@ def get_bitbucket_scripts(data):
             for i, item in enumerate(data):
                 results.update(get_scripts(item, f"{path}/{i}"))
         elif (
-            isinstance(data, str)
-            or isinstance(data, int)
-            or isinstance(data, float)
+            isinstance(data, (float, int, str))
             or data is None
         ):
             pass
@@ -201,9 +196,7 @@ def get_github_scripts(data):
             for i, item in enumerate(data):
                 results.update(get_runs(item, f"{path}/{i}", workflow_default_shell))
         elif (
-            isinstance(data, str)
-            or isinstance(data, int)
-            or isinstance(data, float)
+            isinstance(data, (float, int, str))
             or data is None
         ):
             pass
