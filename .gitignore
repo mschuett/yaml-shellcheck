@@ -1,0 +1,8 @@
+.git/
+.test-input/
+__pycache__/
+tests/__pycache__/
+.pytest_cache
+.vscode/
+.idea/
+.venv/
