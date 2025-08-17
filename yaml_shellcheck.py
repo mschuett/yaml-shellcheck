@@ -17,11 +17,9 @@ import sys
 from ruamel.yaml import YAML
 from ruamel.yaml.nodes import ScalarNode
 
-global logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("yaml_shellcheck")
 
 def setup():
-    global logger
     parser = argparse.ArgumentParser(
         description="run shellcheck on script blocks from .gitlab-ci.yml or similar files",
     )
@@ -74,11 +72,12 @@ def get_taskfile_scripts(data):
     """Taskfile task runner / build tool files have a clearly defined schema: https://taskfile.dev/reference/schema/
     """
     logging.debug("get_taskfile_scripts()")
+    logger.debug("get_taskfile_scripts()")
     def strip_templates(command: str) -> str:
         global taskfile_variable_ind
 
-        iter = re.compile(r"{{[^{}]*}}").findall(command)
-        for match in iter:
+        replace_macros = re.compile(r"{{[^{}]*}}").findall(command)
+        for match in replace_macros:
             # If not the simple case return an empty line, we don't validate this line
             # as it can be anything of go template syntax which then gets resolved to shell
             if '{{.' not in match:
@@ -116,9 +115,9 @@ def get_taskfile_scripts(data):
     if "tasks" not in data:
         return result
     result = get_scripts(data["tasks"], "tasks")
-    logging.debug("got scripts: %s", result)
-    for key in result:
-        logging.debug("%s: %s", key, result[key])
+    logger.debug("got scripts: %s", result)
+    for key,value in result.items():
+        logger.debug("%s: %s", key, value)
     return result
 
 def get_bitbucket_scripts(data):
@@ -126,7 +125,7 @@ def get_bitbucket_scripts(data):
     publish a schema, as a result we simply search all scripts elements,
     something like `pipelines.**.script`
     """
-    logging.debug("get_bitbucket_scripts()")
+    logger.debug("get_bitbucket_scripts()")
 
     def get_scripts(data, path):
         results = {}
@@ -155,9 +154,9 @@ def get_bitbucket_scripts(data):
     if "pipelines" not in data:
         return result
     result = get_scripts(data["pipelines"], "pipelines")
-    logging.debug("got scripts: %s", result)
+    logger.debug("got scripts: %s", result)
     for key,value in result.items():
-        logging.debug("%s: %s", key, value)
+        logger.debug("%s: %s", key, value)
     return result
 
 
@@ -214,7 +213,7 @@ def get_github_scripts(data):
     default_shell = None
     if "defaults" in data and "run" in data["defaults"]:
         default_shell = data["defaults"]["run"].get("shell", None)
-        logging.debug("found and set default shell %s", default_shell)
+        logger.debug("found and set default shell %s", default_shell)
 
     if "jobs" in data:  # workflow
         result = get_runs(data["jobs"], "jobs", default_shell)
@@ -222,9 +221,9 @@ def get_github_scripts(data):
         result = get_runs(data["runs"], "runs", default_shell)
     else:  # neither
         return result
-    logging.debug("got scripts: %s", result)
+    logger.debug("got scripts: %s", result)
     for key,value in result.items():
-        logging.debug("%s: %s", key, value)
+        logger.debug("%s: %s", key, value)
     return result
 
 
@@ -238,14 +237,14 @@ def get_circleci_scripts(data):
         return result
     for jobkey, job in data["jobs"].items():
         steps = job.get("steps", [])
-        logging.debug("job %s: %s", jobkey, steps)
+        logger.debug("job %s: %s", jobkey, steps)
         for step_num, step in enumerate(steps):
             if not (isinstance(step, dict) and "run" in step):
-                logging.debug("job %s, step %d: no run declaration", jobkey, step_num)
+                logger.debug("job %s, step %d: no run declaration", jobkey, step_num)
                 continue
             run = step["run"]
             shell = None
-            logging.debug("job %s, step %d: found %s %s", jobkey, step_num, type(run), run)
+            logger.debug("job %s, step %d: found %s %s", jobkey, step_num, type(run), run)
             # challenge: the run element can have different data types
             if isinstance(run, dict):
                 if "command" in run:
@@ -254,7 +253,7 @@ def get_circleci_scripts(data):
                         shell = run["shell"]
                 else:
                     # this step could be a directive like `save_cache`
-                    logging.info("job %s, step %d: no 'command' attribute", jobkey, step_num)
+                    logger.info("job %s, step %d: no 'command' attribute", jobkey, step_num)
                     script = ""
             elif isinstance(run, str):
                 script = run
@@ -278,9 +277,9 @@ def get_circleci_scripts(data):
             script = f"#!{shell}\n" + script
             result[f"{jobkey}/{step_num}"] = script
 
-    logging.debug("got scripts: %s", result)
+    logger.debug("got scripts: %s", result)
     for key,value in result.items():
-        logging.debug("%s: %s", key, value)
+        logger.debug("%s: %s", key, value)
     return result
 
 
@@ -295,9 +294,9 @@ def get_drone_scripts(data):
     for item in data["steps"]:
         section = item.get("name")
         result[f"{jobkey}/{section}"] = "\n".join(item.get("commands", []))
-    logging.debug("got scripts: %s", result)
+    logger.debug("got scripts: %s", result)
     for key,value in result.items():
-        logging.debug("%s: %s", key, value)
+        logger.debug("%s: %s", key, value)
     return result
 
 
@@ -355,7 +354,7 @@ def get_ansible_scripts(data):
                     # try to add shebang line from 'executable' if it looks like a shell
                     executable = task.get("args", {}).get("executable", None)
                     if executable and "sh" not in executable:
-                        logging.debug("unsupported shell %s, in %d/%s", executable, i, key)
+                        logger.debug("unsupported shell %s, in %d/%s", executable, i, key)
                         # ignore this task
                         continue
                     elif executable:
@@ -373,9 +372,9 @@ def get_ansible_scripts(data):
     else:
         return result
 
-    logging.debug("got scripts: %s", result)
+    logger.debug("got scripts: %s", result)
     for key,value in result.items():
-        logging.debug("%s: %s", key, value)
+        logger.debug("%s: %s", key, value)
     return result
 
 
@@ -389,7 +388,7 @@ def select_yaml_schema(documents, filename):
     # special case first: GitLab 17 adds an optional spec-document before the main content document
     # https://docs.gitlab.com/ee/ci/yaml/inputs.html
     if len(documents) == 2 and "spec" in documents[0]:
-        logging.info("read %s as GitLab CI config with spec header section ...", filename)
+        logger.info("read %s as GitLab CI config with spec header section ...", filename)
         return get_gitlab_scripts, 1
 
     # in previous versions we ignored additional documents in YAML files
@@ -399,29 +398,29 @@ def select_yaml_schema(documents, filename):
     # else: documents == 1; all other tools and cases only read a single YAML document
     data = documents[0]
     if isinstance(data, dict) and "pipelines" in data:
-        logging.info("read %s as Bitbucket Pipelines config...", filename)
+        logger.info("read %s as Bitbucket Pipelines config...", filename)
         return get_bitbucket_scripts, 0
     if isinstance(data, dict) and "version" in data and "tasks" in data:
-        logging.info(f"read {filename} as Task Build File...")
+        logger.info("read %s as Task Build File...", filename)
         return get_taskfile_scripts, 0
     elif isinstance(data, dict) and "on" in data and "jobs" in data:
-        logging.info("read %s as GitHub Workflows config...", filename)
+        logger.info("read %s as GitHub Workflows config...", filename)
         return get_github_scripts, 0
     elif isinstance(data, dict) and "inputs" in data and "runs" in data:
-        logging.info("read %s as GitHub Actions config...", filename)
+        logger.info("read %s as GitHub Actions config...", filename)
         return get_github_scripts, 0
     elif isinstance(data, dict) and "version" in data and "jobs" in data:
-        logging.info("read %s as CircleCI config...", filename)
+        logger.info("read %s as CircleCI config...", filename)
         return get_circleci_scripts, 0
     elif isinstance(data, dict) and "steps" in data and "kind" in data and "type" in data:
-        logging.info("read %s as Drone CI config...", filename)
+        logger.info("read %s as Drone CI config...", filename)
         return get_drone_scripts, 0
     elif isinstance(data, list):
-        logging.info("read %s as Ansible file...", filename)
+        logger.info("read %s as Ansible file...", filename)
         return get_ansible_scripts, 0
     elif isinstance(data, dict):
         # TODO: GitLab is the de facto default value, we should add more checks here
-        logging.info("read %s as GitLab CI config...", filename)
+        logger.info("read %s as GitLab CI config...", filename)
         return get_gitlab_scripts, 0
     else:
         raise ValueError(f"read {filename}, cannot determine CI tool from YAML structure")
@@ -429,8 +428,6 @@ def select_yaml_schema(documents, filename):
 
 def read_yaml_file(filename):
     """read YAML and return dict with job name and shell scripts"""
-    global logger
-
     class GitLabReference:
         yaml_tag = "!reference"
 
