@@ -2,8 +2,7 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y shellcheck \
-  && rm -rf /var/lib/apt/lists/*
+COPY --from=koalaman/shellcheck:v0.11.0 /bin/shellcheck /bin/
 
 # prevent 9Mb of cached bytecode files (.pyc)
 ENV PYTHONDONTWRITEBYTECODE=1
