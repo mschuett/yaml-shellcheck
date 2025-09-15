@@ -547,7 +547,9 @@ def main(args):
     cleanup_files(args)
     return check_proc_result.returncode if check_proc_result else 0
 
+def cli():
+    return main(setup())
 
 if __name__ == "__main__":
     # exit with shellcheck exit code
-    sys.exit(main(setup()))
+    sys.exit(cli())

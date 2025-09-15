@@ -10,7 +10,7 @@ python = ">=3.8,<4"
 "ruamel.yaml" = "0.18.15"
 
 [tool.poetry.scripts]
-yaml_shellcheck = "yaml_shellcheck:main"
+yaml_shellcheck = "yaml_shellcheck:cli"
 
 
 [build-system]
