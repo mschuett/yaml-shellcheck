@@ -533,7 +533,10 @@ def cleanup_files(args):
         logger.debug("removed working dir %s", args.outdir)
 
 
-def main(args):
+def main(args = None):
+    # pytest injects its args, a "normal" call should get them from command line
+    if not args:
+        args = setup()
     filenames = []
     for filename in args.files:
         try:
@@ -550,4 +553,4 @@ def main(args):
 
 if __name__ == "__main__":
     # exit with shellcheck exit code
-    sys.exit(main(setup()))
+    sys.exit(main())
