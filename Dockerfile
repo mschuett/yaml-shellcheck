@@ -1,5 +1,5 @@
 FROM koalaman/shellcheck:v0.11.0 AS src
-FROM python:3.13-slim AS base
+FROM python:3.13.7-slim AS base
 
 WORKDIR /app
 
