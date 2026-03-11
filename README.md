@@ -9,7 +9,7 @@ Currently supported formats are
 [GitHub Actions](https://docs.github.com/en/actions),
 [Drone CI](https://docs.drone.io/pipeline/overview/),
 [CircleCI](https://circleci.com/docs/2.0/configuration-reference/),
-and (very limited) [Ansible](https://docs.ansible.com/ansible/2.9/modules/shell_module.html)
+as well as (very limited) [Ansible](https://docs.ansible.com/ansible/2.9/modules/shell_module.html) and [Task](https://taskfile.dev/).
 
 ## Usage
 
@@ -138,10 +138,16 @@ Task support is limited also. This tool reads the shell from the cmd portion of 
 It will convert Task variables to shell variables, so in case of standard shell code it will give you the errors out of it.
 See https://taskfile.dev/ for more information on this build tool.
 
-### Common
+## Common Concepts and Limits
 
-Files are read with a YAML parser, so all YAML anchors are resolved.
-There is no additional check on data types or structure.
+- Files are read with a YAML parser, so all YAML anchors are resolved.
+- There is no additional check on data types or structure.
+- YAML local tags (those with an exclamation `!`) are not really supported. If they are part of the spec syntax (GitLab's `!reference` and Ansible's `!vault`) then they are handled and replaced with a placeholder.
+- Variables are not inserted, even if this would be possible (for job local variables that are explicitly set inside the same YAML spec file)
+- Shell detection is unreliable and inconsistent between CI systems. I.e. when a shell is specified in the job (possible e.g. with GitHub and Ansible) then we try to use it as part of the shellcheck input. Other systems (GitLab) rely on the used container image to provide a working shell and have no YAML keyword to select one. In that case one can only use the global `--shell` option to change the default bourne shell to bash or csh.
+- The provided container image is rarely updated. Please consider building your own image to get a current Linux and Python base system.
 
-Following the Bitbucket/GitLab usage a script block may contain a string or an
-array of strings.
+## Maintenance Status
+
+This project is passively maintained and considered finished. --
+I do not plan any more active development, but I will review issue reports and pull requests as my time permits.
