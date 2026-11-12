@@ -34,7 +34,6 @@ jobs:
         with:
           context: .
           push: true
-          attests: type=sbom
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Generate artifact attestation
@@ -43,3 +42,10 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+      - name: Docker Scout
+        uses: docker/scout-action@v1.29.0
+        with:
+          command: quickview,compare,sbom
+          image: ${{ steps.meta.outputs.tags }}
+          to-latest: true
+          attestation-add: true
