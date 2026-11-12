@@ -38,11 +38,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
       - name: Syft SBOM Generation
         uses: anchore/sbom-action@v0.24.3
+        needs: Build and push Docker image
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@${{ steps.push.outputs.digest }}
-          artifact-name: image-sbom.spdx
+          output-file: image-sbom.spdx
       - name: Generate artifact attestation
         uses: actions/attest@v4.2.2
+        needs: Syft SBOM Generation
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
