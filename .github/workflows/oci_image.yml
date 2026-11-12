@@ -37,9 +37,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Syft SBOM Generation
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.3
         with:
-          image: ${{ steps.push.outputs.imageid }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@${{ steps.push.outputs.digest }}
           artifact-name: image-sbom.spdx
       - name: Generate artifact attestation
         uses: actions/attest@v4.2.2
