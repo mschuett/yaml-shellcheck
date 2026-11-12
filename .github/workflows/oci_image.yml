@@ -34,12 +34,17 @@ jobs:
         with:
           context: .
           push: true
-          attests: type=sbom
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: Syft SBOM Generation
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          artifact-name: image-sbom.spdx
       - name: Generate artifact attestation
         uses: actions/attest@v4.2.2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+          sbom-path: image-sbom.spdx
