@@ -40,11 +40,18 @@ jobs:
         uses: anchore/sbom-action@v0.24.3
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}@${{ steps.push.outputs.digest }}
-          output-file: image-sbom.spdx
-      - name: Generate artifact attestation
+          format: cyclonedx-json
+          output-file: image-sbom.json
+      - name: Generate artifact attestation, providence
         uses: actions/attest@v4.2.2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-          sbom-path: image-sbom.spdx
+      - name: Generate artifact attestation, SBOM
+        uses: actions/attest@v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+          sbom-path: image-sbom.json
