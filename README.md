@@ -145,7 +145,15 @@ See https://taskfile.dev/ for more information on this build tool.
 - YAML local tags (those with an exclamation `!`) are not really supported. If they are part of the spec syntax (GitLab's `!reference` and Ansible's `!vault`) then they are handled and replaced with a placeholder.
 - Variables are not inserted, even if this would be possible (for job local variables that are explicitly set inside the same YAML spec file)
 - Shell detection is unreliable and inconsistent between CI systems. I.e. when a shell is specified in the job (possible e.g. with GitHub and Ansible) then we try to use it as part of the shellcheck input. Other systems (GitLab) rely on the used container image to provide a working shell and have no YAML keyword to select one. In that case one can only use the global `--shell` option to change the default bourne shell to bash or csh.
-- The provided container image is rarely updated. Please consider building your own image to get a current Linux and Python base system.
+
+## Container Images
+
+Container images built from this repo are provided for convenience at
+- [Quay.io](https://quay.io/repository/mschuette/yaml-shellcheck): `quay.io/mschuette/yaml-shellcheck`
+- [GitHub](https://github.com/mschuett/yaml-shellcheck/pkgs/container/yaml-shellcheck): `ghcr.io/mschuett/yaml-shellcheck`
+
+They use a Debian base image and are rarely updated.
+Please consider building your own image using a minimal Linux & Python base system with latest security updates.
 
 ## Maintenance Status
 
