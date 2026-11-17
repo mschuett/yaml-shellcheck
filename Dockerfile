@@ -15,3 +15,10 @@ COPY yaml_shellcheck.py .
 
 USER 1000
 ENTRYPOINT [ "python3", "yaml_shellcheck.py"]
+
+LABEL org.opencontainers.image.source="https://github.com/mschuett/yaml-shellcheck"
+LABEL org.opencontainers.image.title="YAML-Shellcheck" \
+      org.opencontainers.image.description="run shellcheck on YAML CI-config files" \
+      org.opencontainers.image.url="https://github.com/mschuett/yaml-shellcheck" \
+      org.opencontainers.image.licenses="BSD-2-Clause" \
+      org.opencontainers.image.base.name="docker.io/python:3.15-slim"
